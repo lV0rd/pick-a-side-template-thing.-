@@ -1,0 +1,13 @@
+{
+    // Enable format on save
+    "editor.formatOnSave": true,
+
+    // Associate Stylua as the default formatter for Lua files
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+    
+    "[luau]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+}

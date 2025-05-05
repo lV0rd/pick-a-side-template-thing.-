@@ -1,0 +1,5 @@
+std = "roblox"
+
+[configuration]
+allow_global = true
+allow_unused_variables = true

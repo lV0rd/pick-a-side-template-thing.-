@@ -1,0 +1,15 @@
+return {
+    --SERVER
+    INTERMISSION_TIME = 10,
+    REQUIRED_PLAYERS = 0,
+    VOTING_TIME = 10,
+    FIGHTING_TIME = 35,
+    CELEBRATE_TIME = 10,
+
+    TIME_BETWEEN_PREVIEW = 3.4,
+
+    SPACING = 0.5,
+    MAX_ROW_LENGHT = 5,
+
+    --CLIENT
+}

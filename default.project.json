@@ -1,0 +1,42 @@
+{
+  "name": "better brainrot",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Source": {
+        "$path": "src/client/Source"
+      },
+      "Packages": {
+        "$path": "Packages"
+      },
+      "$ignoreUnknownInstances": true
+    },
+
+    "ServerStorage":{
+      "Source": {
+        "$path": "src/server/Source"
+      },
+      "$ignoreUnknownInstances": true
+    },
+
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server/Loader.server.luau"
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client/Loader.client.luau"
+        }
+      }
+    }
+
+    
+  }
+}
