@@ -3,6 +3,6 @@ local Red = require(ReplicatedStorage.Packages.Red)
 
 return Red.Function("Follow", function()
     return nil
-end, function(Success : boolean, List : {number}?)
+end, function(Success, List)
     return Success, List
 end)

@@ -2,50 +2,56 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
-local Events = ReplicatedStorage.Shared.Events
-
-local DataReplicate = require(Events.DataReplication):Server()
-
-local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Timer = require(ReplicatedStorage.Packages.Timer)
+local IDs = require(ReplicatedStorage.Shared.Data.IDs)
 
 local Source = ServerStorage.Source
 local Modules = Source.Modules
 
 local ProfileStore = require(Modules.ProfileStore)
+local ReplicaServer = require(Modules.ReplicaServer)
 
 local Template = require(Modules.ProfileTemplate)
 
-local IDs = require(ReplicatedStorage.Shared.Data.IDs)
+local PlayerStore = ProfileStore.New("GameTestingDataStudio"..tostring(tick())
+, Template)
 
-local PlayerStore = ProfileStore.New(
-	"TT"..tostring(tick())
-	,
-	Template
-)
+local PlayerDataReplicaToken = ReplicaServer.Token("PlayerData")
+local LocalDataReplicaToken = ReplicaServer.Token("LocalData")
 
-local LocalDataTemplate = {
-	Gifts = {},
-}
+local Shared = ReplicatedStorage.Shared
+local Data = Shared.Data
+
+local Dances = require(Data.Dances)
+local Swords = require(Data.Swords)
 
 local Service = {
 	Name = script.Name,
-	Players = {},
+	Players = {} :: { [Player]: PlayerData },
 	PlayerJoinSignal = Signal.new(),
 	PlayerLeaveSignal = Signal.new(),
+}
+
+export type PlayerData = {
+	Player: Player,
+	Connections: { RBXScriptConnection },
+	Profile: ProfileStore.Profile<any>,
+	Replica: ReplicaServer.Replica,
+	LocalData: ReplicaServer.Replica,
 }
 
 function Service:GetAllPlayers()
 	return self.Players
 end
 
-function Service:GetPlayer(Player)
+function Service:GetPlayer(Player): PlayerData?
 	if self:CheckPlayer(Player) then
 		return self.Players[Player]
 	end
+
+	return nil
 end
 
 function Service:CheckPlayer(Player)
@@ -55,7 +61,7 @@ end
 function Service:PlayerJoin(Player: Player)
 	Player:SetAttribute("JoinTime", workspace:GetServerTimeNow())
 
-	local Connections = Janitor.new()
+	local Connections = {}
 
 	local Profile = PlayerStore:StartSessionAsync(`{Player.UserId}`, {
 		Cancel = function()
@@ -82,6 +88,70 @@ function Service:PlayerJoin(Player: Player)
 		return
 	end
 
+	local Data = {
+		Player = Player,
+		Connections = Connections,
+		Profile = Profile,
+
+		Replica = ReplicaServer.New({
+			Token = PlayerDataReplicaToken,
+			Tags = {
+				Player = Player,
+			},
+			Data = Profile.Data,
+			
+		}),
+
+		LocalData = ReplicaServer.New({
+			Token = LocalDataReplicaToken,
+			Tags = {
+				Player = Player,
+			},
+			Data = {
+				Gifts = {},
+				SpinHistory = {},
+			},
+			
+		}),
+	}
+
+	Data.Replica:Replicate()
+	Data.LocalData:Replicate()
+
+	self.Players[Player] = Data
+
+	task.spawn(function()
+		for i, v in Dances do
+			if Data.Replica.Data.Emotes[v.Name] then
+				continue
+			end
+
+			if v.Currency == "Robux" then
+				if Data.Replica.Data.Gamepasses[v.ID] then 
+					Data.Replica:Set({"Emotes", v.Name}, true)
+				end
+			end
+			Data.Replica:Set({"Emotes", v.Name}, false)
+		end
+	end)
+
+	task.spawn(function()
+        local Replica = Data.Replica
+        local Data = Replica.Data
+        local Gamepasses = Data.Gamepasses
+		for ID, Gamepass in IDs.Gamepasses do
+            local Owns = MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(ID))
+			
+            local CurrentState = Gamepasses[ID]
+
+            if Owns and not CurrentState then
+                Replica:Set({"Gamepasses", ID}, true)
+            elseif CurrentState == nil then
+				Replica:Set({"Gamepasses", ID}, false)
+            end
+		end
+	end)
+	
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 	leaderstats.Parent = Player
@@ -91,78 +161,50 @@ function Service:PlayerJoin(Player: Player)
 	Wins.Value = Profile.Data.Wins or 0
 	Wins.Parent = leaderstats
 
-	local Spins = Instance.new("IntValue")
-	Spins.Name = "Spins"
-	Spins.Value = Profile.Data.Spins or 0
-	Spins.Parent = Player
-
-	local LocalData = table.clone(LocalDataTemplate)
-
-	task.spawn(function()
-		for id, gamepass in IDs.Gamepasses do
-			if Profile.Data.Gamepasses[id] == true then
-				continue
-			end
-
-			if MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(id)) then
-				Profile.Data.Gamepasses[id] = true
-			else
-				Profile.Data.Gamepasses[id] = false
-			end
-		end
-	end)
-
-	self.Players[Player] = {
-		Player = Player,
-		Connections = Connections,
-		Profile = Profile,
-		LocalData = LocalData,
-	}
-
-	if Profile.Data.FirstLogin == 0 then
-		Profile.Data.FirstLogin = os.time()
+	if Data.Replica.Data.FirstLogin == 0 then
+		Data.Replica:Set({ "FirstLogin" }, workspace:GetServerTimeNow())
 	end
 
 	print(Profile)
-
 	self.PlayerJoinSignal:Fire(Player)
 end
 
-function Service.Start()
-	for i, Player in Players:GetPlayers() do
-		if Player:IsDescendantOf(Players) then
-			Service:PlayerJoin(Player)
+for i, Player in Players:GetPlayers() do
+	if Player:IsDescendantOf(Players) then
+		Service:PlayerJoin(Player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(Player)
+	Service:PlayerJoin(Player)
+end)
+
+Players.PlayerRemoving:Connect(function(Player)
+	if Service.Players[Player] then
+		Service.Players[Player].Profile:EndSession()
+
+		if Service.Players[Player].Connections then
+			for i, v in Service.Players[Player].Connections do
+				v:Disconnect()
+				v = nil
+			end
+			Service.Players[Player] = nil
 		end
 	end
 
-	Players.PlayerAdded:Connect(function(Player)
-		Service:PlayerJoin(Player)
-	end)
+	Service.PlayerLeaveSignal:Fire(Player)
+end)
 
-	Players.PlayerRemoving:Connect(function(Player)
-		if Service.Players[Player] then
-			Service.Players[Player].Profile:EndSession()
+local Clock = Timer.new(1)
 
-			if Service.Players[Player].Connections then
-				Service.Players[Player].Connections:Destroy()
-				Service.Players[Player] = nil
-			end
+Clock.Tick:Connect(function()
+	for i, v in Service.Players do
+		if v.Profile then
+			v.Replica:Set({ "PlayTime" }, v.Replica.Data.PlayTime + 1)
 		end
+	end
+end)
 
-		Service.PlayerLeaveSignal:Fire(Player)
-	end)
-
-	local Timer = Timer.new(1)
-
-	Timer.Tick:Connect(function()
-		for i, v in Service.Players do
-			if v.Profile then
-				v.Profile.Data.PlayTime += 1
-			end
-		end
-	end)
-
-	Timer:Start()
-end
+Clock:Start()
 
 return Service

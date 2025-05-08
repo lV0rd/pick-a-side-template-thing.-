@@ -1,4 +1,6 @@
+local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Controller = {
 	Name = script.Name,
@@ -14,7 +16,22 @@ Blur.Size = 0
 Blur.Parent = Lighting
 
 local Packages = ReplicatedStorage:WaitForChild("Packages")
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Events = Shared:WaitForChild("Events")
+
+local Notify = require(Events.Notify):Client()
+
 local Spr = require(Packages.spr)
+
+local Assets = ReplicatedStorage:WaitForChild("Assets")
+local Gui = Assets.Gui
+local NotificationTemplate = Gui.Notification :: TextLabel
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
+local RootGui = PlayerGui.RootGui
+
+local Notifications = RootGui.Notifications :: Frame
 
 function open(Frame: Frame)
 	Spr.stop(Frame)
@@ -59,10 +76,30 @@ function Controller:Toggle(Frame)
 	end
 end
 
+function Controller:Notify(Message, WaitTime)
+	local New = NotificationTemplate:Clone()
+	local OldSize = New.Size
+
+	New.Text = Message
+	New.Size = UDim2.fromScale(1, 0)
+	New.Parent = Notifications
+
+	Spr.target(New, .5, 5, {Size = OldSize})
+	Spr.completed(New, function()
+		Debris:AddItem(New, WaitTime or 5)
+	end)
+
+	--sound
+end
+
 function Controller.Start()
 	if Controller.States.CurrentOpenMenu then
 		close(Controller.States.CurrentOpenMenu)
 	end
+
+	Notify:On(function(Message)
+		Controller:Notify(Message)
+	end)
 end
 
 return Controller

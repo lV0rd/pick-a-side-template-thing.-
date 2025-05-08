@@ -1,0 +1,1 @@
+repeat task.wait() until pcall(function() game:GetService('StarterGui'):SetCore("ResetButtonCallback", false) end);

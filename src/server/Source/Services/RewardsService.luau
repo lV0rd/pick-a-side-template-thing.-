@@ -1,18 +1,16 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Source = ServerStorage.Source
 local Services = Source.Services
 
-local Packages = ReplicatedStorage.Packages
 local Shared = ReplicatedStorage.Shared
-
 local Events = Shared.Events
 local Functions = Shared.Functions
 
-local Settings = require(Shared.Data.Settings)
+local Notify = require(Events.Notify):Server()
+
 local IDs = require(Shared.Data.IDs)
 local Rewards = require(Shared.Data.Rewards)
 
@@ -40,18 +38,20 @@ local function pickWeighted(array: { any })
 			return i
 		end
 	end
+
+	return nil
 end
 
 function Service.Start()
 	local PlayerService = require(Services.PlayerService)
 
 	Spin:SetCallback(function(Player: Player)
-		local Profile = PlayerService:GetPlayer(Player)
-		if not Profile then
+		local PlayerData = PlayerService:GetPlayer(Player)
+		if not PlayerData then
 			return nil
 		end
 
-		if Profile.Profile.Data.Spins <= 0 then
+		if PlayerData.Replica.Data.Spins <= 0 then
 			return nil
 		end
 
@@ -63,22 +63,21 @@ function Service.Start()
 			return nil
 		end
 
-		Profile.Profile.Data.Spins -= 1
-		Player.Spins.Value -= 1
+		PlayerData.Replica:Set({"Spins"}, PlayerData.Replica.Data.Spins - 1)
 		
-		Reward.Callback(Player, Profile.Profile)
+		Reward.Callback(Player, PlayerData)
 
 		return Index
 	end)
 
 	Follow:SetCallback(function(Player: Player)
 		local success, result, result2 = pcall(function()
-			local Profile = PlayerService:GetPlayer(Player)
-			if not Profile then
+			local PlayerData = PlayerService:GetPlayer(Player)
+			if not PlayerData then
 				return false, "Data not found"
 			end
 
-            if Profile.Profile.Data.Followed then
+            if PlayerData.Replica.Data.Followed then
                 return false, "Already followed"
             end
 
@@ -103,7 +102,8 @@ function Service.Start()
 			end
 
 			if #FollowCount >= #Rewards.Follow.List then
-				Rewards.Follow.Callback(Player, Profile.Profile)
+				Rewards.Follow.Callback(Player, PlayerData)
+				PlayerData.Replica:Set({"Followed"}, true)
 				return true, "Followed"
 			end
 
@@ -118,15 +118,15 @@ function Service.Start()
 	end)
 	
 	Gifts:SetCallback(function(Player: Player, Index: number)
-		local Profile = PlayerService:GetPlayer(Player)
-		if not Profile then
-			return false, "Data not found"
+		local PlayerData = PlayerService:GetPlayer(Player)
+		if not PlayerData then
+			return false
 		end
 
 		local Info = Rewards.Gifts[Index]
 
 		if not Info then
-			return false, "Gift not found"
+			return false
 		end
 
 		local now = workspace:GetServerTimeNow()
@@ -140,20 +140,21 @@ function Service.Start()
 		local Time = math.clamp(Info.Time - (now - StartTime), 0, Info.Time)
 
 		if Time > 0 then
-			return false, "Not reached yet/server didnt reach yet"
+			return false
 		end
 
-		local Gifts = Profile.LocalData.Gifts
+		local Gifts = PlayerData.LocalData.Data.Gifts
 		local Name = tostring(Index)
 
 		if Gifts[Name] == true then
-			return false, "Already claimed gift."
+			return false
 		end
 
-		Gifts[Name] = true
-		Info.Reward(Player)
+		Notify:Fire(Player, "Claimed gift! Thanks for playing!")
+		PlayerData.LocalData:Set({"Gifts", Name}, true)
+		Info.Reward(Player, PlayerData)
 
-		return true, "Claimed gift! : " .. Info.Title .. ""
+		return true
 	end)
 end
 

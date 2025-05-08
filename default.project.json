@@ -13,7 +13,13 @@
       "Packages": {
         "$path": "Packages"
       },
+      "ReplicaShared": {
+        "$path": "src/ReplicaShared"
+      },
+      
       "$ignoreUnknownInstances": true
+
+
     },
 
     "ServerStorage":{
@@ -26,6 +32,9 @@
     "ServerScriptService": {
       "Server": {
         "$path": "src/server/Loader.server.luau"
+      },
+      "Scripts": {
+        "$path": "src/server/Scripts"
       }
     },
 
@@ -33,6 +42,9 @@
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client/Loader.client.luau"
+        },
+        "Scripts": {
+          "$path": "src/client/Scripts"
         }
       }
     }

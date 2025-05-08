@@ -1,17 +1,17 @@
 return {
     Wins = 0,
     Kills = 0,
-    Coins = 0,
-    Spins = 3,
+    Coins = 100,
+    Spins = 7,
 
     FirstLogin = 0,
 
     PlayTime = 0,
 
-    Emotes = {"Default"},
-    Weapons = {"ClassicSword"},
+    Emotes = {["Default"] = true},
+    Swords = {["ClassicSword"] = true},
 
-    EquippedWeapon = "ClassicSword",
+    EquippedSword = "ClassicSword",
     EquippedEmote = "Default",
 
     Gamepasses = {},

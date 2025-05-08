@@ -1,8 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local SocialService = game:GetService("SocialService")
-local TweenService = game:GetService("TweenService")
 local Controller = {
 	Name = script.Name,
 }
@@ -10,8 +8,6 @@ local Controller = {
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Source = ReplicatedStorage:WaitForChild("Source")
-
-local Signals = Source:WaitForChild("Events")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -29,20 +25,18 @@ local GiftsButton = Middle.Rewards
 local GiftsMenu = Menus.Gifts
 local GiftsClose = GiftsMenu.Close
 
-local GiftNotification
-local GiftTimer
+local GiftNotification = GiftsButton.Notification
+local GiftTimer = GiftsButton.Time
 
 local Elements = GiftsMenu.Gifts.Elements.Frame
 
 local Fusion = require(Packages.Fusion)
 
 local scope = Fusion.scoped(Fusion)
-local peek = Fusion.peek
 local OnEvent = Fusion.OnEvent
 
 local Start = workspace:GetServerTimeNow()
 
-local IDs = require(Shared.Data.IDs)
 local Rewards = require(Shared.Data.Rewards)
 
 local GiftsFunction = require(Shared.Functions.Gifts)
@@ -52,13 +46,14 @@ local Template = ReplicatedStorage.Assets.Gui.GiftFrame
 local Claimed = {}
 local Claimable = {}
 
+local Connection
+
 local function toMS(s)
 	return string.format("%02i:%02i", s / 60, s % 60)
 end
 
 function ClaimReward(Name, Button)
 	local Index = tonumber(Name)
-	local RewardInfo = Rewards.Gifts[Index]
 
 	if not Claimable[Index] then
 		return
@@ -75,6 +70,8 @@ function ClaimReward(Name, Button)
 		return
 	end
 
+	Claimable[Index] = nil
+
 	Button.Claimed.Visible = true
 	Claimed[Index] = true
 end
@@ -84,7 +81,6 @@ function InitRewards()
 		local newFrame = Template:Clone()
 		newFrame.Name = i
 		local Button = newFrame.TextButton
-		local Claimed = Button.Claimed
 		local Image = Button.ImageLabel
 		local Timer = Button.Timer
 		local Title = Button.Title
@@ -112,6 +108,7 @@ function StartRewards()
 end
 
 function UpdateUi()
+	local Latest = nil
 	for i, v in Elements:GetChildren() do
 		if not v:IsA("Frame") then
 			continue
@@ -121,6 +118,8 @@ function UpdateUi()
 
 		local Button = v.TextButton
 		local Timer = Button.Timer
+
+		
 
 		local Info = Rewards.Gifts[Index]
 
@@ -137,16 +136,49 @@ function UpdateUi()
 		local now = workspace:GetServerTimeNow()
 		local StartTime = LocalPlayer:GetAttribute("StartTime") or Start
 		local TimeLeft = math.clamp(Info.Time - (now - StartTime), 0, Info.Time)
-		Timer.Text = toMS(TimeLeft)
-
+		
 		if TimeLeft <= 0 then
 			Claimable[Index] = true
 		end
+
+		if not Latest then
+			if Timer.Text ~= "Claim!" and Timer.Text ~= "Claimed!" and Timer.Text ~= "XX:XX" then
+				Latest = TimeLeft
+			end
+		end
+		
+		Timer.Text = toMS(TimeLeft)
 	end
+
+	NotifyUi(Latest)
 end
 
-function NotifyUi()
+function NotifyUi(Latest)
 	--wip
+	local ClaimableSize = 0
+	for i, v in Claimable do
+		ClaimableSize += 1
+	end
+
+	local ClaimedSize = 0
+	for i, v in Claimed do
+		ClaimedSize += 1
+	end
+
+	local RewardsSize = 0
+	for i, v in Rewards.Gifts do
+		RewardsSize += 1
+	end
+
+	GiftNotification.Visible = (ClaimableSize > 0)
+
+	if ClaimedSize == RewardsSize then
+		GiftTimer.Text = "Claimed!"
+		Connection:Disconnect()
+		Connection = nil
+	else
+		GiftTimer.Text = GiftNotification.Visible and "Claim" or (Latest and Latest > 0) and toMS(Latest) or "Claim!"
+	end
 end
 
 function Controller.Start()
@@ -166,7 +198,7 @@ function Controller.Start()
 
 	InitRewards()
 	StartRewards()
-	RunService.PostSimulation:Connect(UpdateUi)
+	Connection = RunService.PostSimulation:Connect(UpdateUi)
 end
 
 return Controller

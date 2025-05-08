@@ -6,13 +6,17 @@ local Teams = game:GetService("Teams")
 local Source = ServerStorage.Source
 local Services = Source.Services
 
+local PlayerService = require(Services.PlayerService)
+
 local Packages = ReplicatedStorage.Packages
 local Shared = ReplicatedStorage.Shared
+local Events = Shared.Events
+
+local Invisible = require(Events.Invisible):Server()
 
 local Settings = require(Shared.Data.Settings)
 local Brainrots = require(Shared.Data.Brainrots)
 
-local Signal = require(Packages.Signal)
 local Fusion = require(Packages.Fusion)
 
 local scope = Fusion.scoped(Fusion)
@@ -36,7 +40,7 @@ local Service = {
 
 	GameData = {
 		Started = false,
-		Players = {},
+		Players = {} :: {[Player]: PlayerService.PlayerData},
 
 		IntermissionTime = 0,
 		VotingTime = 0,
@@ -51,6 +55,15 @@ local Service = {
 	},
 }
 
+local function getTriangularGridOffset(index: number): Vector3
+	local row = math.floor((math.sqrt(8 * index + 1) - 1) / 2)
+	local posInRow = index - row * (row + 1) // 2
+	local xSpacing, zSpacing = 3, 2.5
+	local x = (posInRow - row / 2) * xSpacing
+	local z = row * zSpacing
+	return Vector3.new(x, 0, z) - Vector3.new(2,0,0)
+end
+
 function GetQueLenght(): number
 	local count = 0
 	for i, v in Service.GameData.Players do
@@ -64,7 +77,7 @@ function StartIntermission()
 
 	if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 		GameData.Status:set("Not enough players!")
-
+		task.wait(.1)
 		StartIntermission()
 		return
 	end
@@ -109,22 +122,46 @@ function StartGame()
 	local RedIndex = Brainrots[GameData.RedOption]
 	local BlueIndex = Brainrots[GameData.BlueOption]
 
+	local BlueSound = Instance.new("Sound")
+	local RedSound = Instance.new("Sound")
+	BlueSound.SoundId = BlueIndex.Sound
+	RedSound.SoundId = RedIndex.Sound
+
+	BlueSound.Parent = VotingPlatforms.Blue.Preview
+	RedSound.Parent = VotingPlatforms.Red.Preview
+
 	GameData.Status:set(BlueIndex.Name)
-	VotingPlatforms.Blue.Preview.Picture.Texture = BlueIndex.Image
+	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = BlueIndex.Image
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Text = BlueIndex.Name
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = true
 
+	BlueSound:Play()
 	task.wait(Settings.TIME_BETWEEN_PREVIEW)
-	VotingPlatforms.Blue.Preview.Picture.Transparency = 1
+	BlueSound:Stop()
 
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
+	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = false
+
+	task.wait(0.5)
 	GameData.Status:set(RedIndex.Name)
-	VotingPlatforms.Red.Preview.Picture.Texture = RedIndex.Image
+	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = RedIndex.Image
+	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Text = RedIndex.Name
+	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Visible = true
 
+	RedSound:Play()
 	task.wait(Settings.TIME_BETWEEN_PREVIEW)
-	VotingPlatforms.Blue.Preview.Picture.Transparency = 0
+	RedSound:Stop()
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = true
+	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = true
 
 	GameData.Status:set("Select a meme!")
+	BlueSound:Destroy()
+	RedSound:Destroy()
 	Barrier.CanCollide = false
+	Invisible:FireAll(true)
 
 	local voting_conn
+	local votes = {blue = {}, red = {}}
 
 	voting_conn = RunService.PostSimulation:Connect(function()
 		for player : Player, playerData in GameData.Players do
@@ -140,17 +177,50 @@ function StartGame()
 			if not character then
 				continue
 			end
+			
+			local humanoid = character.Humanoid :: Humanoid
 
 			local hit = workspace:Raycast(character:GetPivot().Position, Vector3.yAxis * -10, Params)
 
 			if hit ~= nil then
 				player:SetAttribute("OptionSelected", hit.Instance.Parent.Name)
-				character.HumanoidRootPart.Anchored = true
-				character.HumanoidRootPart.CFrame = CFrame.new(
-					hit.Position.X + math.random(-3, 3),
-					character:GetPivot().Position.Y,
-					hit.Position.Z + math.random(-3, 3)
-				)
+				
+				if hit.Instance.Parent.Name == "Blue" then
+					table.insert(votes.blue, player)
+					local index = #votes.blue - 1
+					local offset = getTriangularGridOffset(index)
+					
+					local basePosition = hit.Instance.Position
+					local newPos = basePosition + offset
+					
+					local rootPart = character:FindFirstChild("HumanoidRootPart")
+					if rootPart then
+						humanoid.WalkSpeed = 0
+						humanoid.JumpPower = 0
+						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
+					end
+					
+				else
+					table.insert(votes.red, player)
+					local index = #votes.red - 1
+					local offset = getTriangularGridOffset(index)
+
+					local basePosition = hit.Instance.Position
+					local newPos = basePosition + offset
+
+					local rootPart = character:FindFirstChild("HumanoidRootPart")
+					if rootPart then
+						humanoid.WalkSpeed = 0
+						humanoid.JumpPower = 0
+						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
+					end
+					
+				end
+				--character.HumanoidRootPart.CFrame = CFrame.new(
+				--	hit.Position.X + math.random(-3, 3),
+				--	character:GetPivot().Position.Y,
+				--	hit.Position.Z + math.random(-3, 3)
+				--)
 			end
 		end
 	end)
@@ -160,6 +230,7 @@ function StartGame()
 		task.wait(1)
 	end
 
+	Invisible:FireAll(false)
 	voting_conn:Disconnect()
 	Barrier.CanCollide = true
 
@@ -182,23 +253,29 @@ function StartGame()
 			end
 
 			-- give sword
-			local humanoid = player.Character:FindFirstChild("Humanoid") :: Humanoid
+			local character = player.Character
+			if not character then
+				continue
+			end
+
+			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
+			
 			if not humanoid then
-				return
+				continue
 			end
 
-			local Weapon = playerData.EquippedWeapon
+			local Sword = playerData.Profile.Data.EquippedSword
 
-			if Weapon == "" then
-				Weapon = "ClassicSword"
+			if Sword == "" then
+				Sword = "ClassicSword"
 			end
 
-			local Tool = Items:FindFirstChild(Weapon)
+			local Tool = Items:FindFirstChild(Sword)
 			if Tool == nil then
 				Tool = Items.ClassicSword
 			end
 
-			humanoid.RootPart.Anchored = false
+			humanoid.WalkSpeed = 16
 
 			Tool:Clone().Parent = player.Backpack
 
@@ -206,12 +283,26 @@ function StartGame()
 				player.Team = Teams.Lobby
 				player.TeamColor = BrickColor.White()
 			end)
+
+			local ColorIndicatorClone = ReplicatedStorage.Assets.Gui.ColorIndicator:Clone()
+			ColorIndicatorClone.Frame.BackgroundColor3 = player.TeamColor.Color
+			ColorIndicatorClone.Parent = character.Head
+		else
+			local Character = player.Character
+			if not Character then
+				continue
+			end
+
+			local HumanoidRootPart = Character.HumanoidRootPart :: BasePart
+			if not (HumanoidRootPart.Position.X < workspace.CheckPart.Position.X) then
+				continue
+			end
+			task.spawn(player.LoadCharacter, player)
+			player.Team = Teams.Lobby
 		end
 	end
 
 	if option_a_players > 0 and option_b_players > 0 then
-		workspace:SetAttribute("RoundStatus", "Fight the other side!!")
-
 		for i = Settings.FIGHTING_TIME, 0, -1 do
 			-- end game once other team is eliminated
 			if #BlueTeam:GetPlayers() == 0 or #RedTeam:GetPlayers() == 0 then
@@ -226,8 +317,9 @@ function StartGame()
 	for v : Player, playerData in GameData.Players do
 		v.Backpack:ClearAllChildren()
 
-		if v.Character and v.Character:FindFirstAncestorOfClass("Tool") then
-			v.Character:FindFirstAncestorOfClass("Tool"):Destroy()
+		if v.Character and v.Character:FindFirstChildOfClass("Tool") then
+			local tool = v.Character:FindFirstChildOfClass("Tool")
+			tool:Destroy()
 		end
 	end
 
@@ -251,20 +343,23 @@ function StartGame()
 	if winner then
 		for i, player in winner:GetPlayers() do
 			print("e")
-			local Data = GameData.Players[player]
-			if not Data then
+			local PlayerData = GameData.Players[player]
+			if not PlayerData then
 				continue
 			end
 	
-			local EquippedEmote = Data.EquippedEmote
+			local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
 
 			if EquippedEmote == "" then
 				EquippedEmote = "Default"
 			end
-			
-			Data.Wins += 1
-			Data.Coins += 500
-			player.leaderstats.Wins.Value = Data.Wins
+
+			PlayerData.Replica:Set({"Wins"}, PlayerData.Replica.Data.Wins + 1)
+			PlayerData.Replica:Set({"Coins"}, PlayerData.Replica.Data.Coins + 500)
+
+			print(PlayerData.Replica)
+
+			player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
 	
 			local character = player.Character
 			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
@@ -287,19 +382,26 @@ function StartGame()
 		player.Team = Teams.Lobby
 		player.TeamColor = BrickColor.White()
 
-		player:LoadCharacter()
+		task.spawn(player.LoadCharacter, player)
 	end
 
-	VotingPlatforms.Red.Preview.Picture.Texture = "rbxassetid://109014405058927"
-	VotingPlatforms.Blue.Preview.Picture.Texture = "rbxassetid://109014405058927"
+
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
+	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
+
+	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
+	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
+	
+	table.clear(votes.blue)
+	table.clear(votes.red)
 
 	StartIntermission()
 end
 
 function Service.Start()
-	local PlayerService = require(Services.PlayerService)
 	PlayerService.PlayerJoinSignal:Connect(function(Player: Player)
-		Service.GameData.Players[Player] = PlayerService:GetPlayer(Player).Profile.Data
+		local PlayerData = PlayerService:GetPlayer(Player)
+		Service.GameData.Players[Player] = PlayerData
 	end)
 
 	PlayerService.PlayerLeaveSignal:Connect(function(Player: Player)

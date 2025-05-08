@@ -7,6 +7,9 @@ local Source = ServerStorage.Source
 local Services = Source.Services
 
 local Shared = ReplicatedStorage.Shared
+local Events = Shared.Events
+
+local Notify = require(Events.Notify):Server()
 
 local IDs = require(Shared.Data.IDs)
 
@@ -20,7 +23,7 @@ local Service = {
 local PURCHASE_ID_CACHE_SIZE = 100
 
 local function PurchaseIdCheckAsync(profile, purchase_id, grant_product): Enum.ProductPurchaseDecision
-	profile = profile.Profile
+	profile = profile
 	if profile:IsActive() == true then
 		local purchase_id_cache = profile.Data.PurchaseIdCache
 		if purchase_id_cache == nil then
@@ -99,7 +102,8 @@ function Service.Start()
 				return Enum.ProductPurchaseDecision.NotProcessedYet
 			end
 
-			return PurchaseIdCheckAsync(profile, ReceiptInfo.PurchaseId, function()
+			return PurchaseIdCheckAsync(profile.Profile, ReceiptInfo.PurchaseId, function()
+				Notify:Fire(player, "Successfully purchased!")
 				Products[tostring(ReceiptInfo.ProductId)].Callback(ReceiptInfo, profile)
 			end)
 		end
@@ -109,35 +113,35 @@ function Service.Start()
 
 	local function GamepassHandle(Player: Player, GamepassId: number, Purchased: boolean)
 		if Purchased == true then
-			local profile = PlayerService:GetPlayer(Player)
+			local PlayerData = PlayerService:GetPlayer(Player)
 
-			while profile == nil and Player.Parent == Players do
-				profile = PlayerService:GetPlayer(Player)
-				if profile ~= nil then
+			while PlayerData == nil and Player.Parent == Players do
+				PlayerData = PlayerService:GetPlayer(Player)
+				if PlayerData ~= nil then
 					break
 				end
 				task.wait()
 			end
 
-			if not profile then
+			if not PlayerData then
 				return
 			end
 
 			for id, gamepass in IDs.Gamepasses do
-				if profile.Data.Gamepasses[id] ~= nil then
+				if PlayerData.Replica.Data.Gamepasses[id] ~= nil then
 					continue
 				end
 
 				if id == tostring(GamepassId) then
-					profile.Data.Gamepasses[id] = true
+					PlayerData.Replica:Set({"Gamepasses", id}, true)
 					continue
 				end
 
-				profile.Data.Gamepasses[id] = false
+				PlayerData.Replica:Set({"Gamepasses", id}, false)
 			end
 
-			if not profile.Data.Gamepasses[tostring(GamepassId)] then
-				profile.Data.Gamepasses[tostring(GamepassId)] = true
+			if not PlayerData.Replica.Data.Gamepasses[tostring(GamepassId)] then
+				PlayerData.Replica:Set({"Gamepasses", tostring(GamepassId)}, true)
 			else
 				return
 			end
@@ -147,7 +151,8 @@ function Service.Start()
 				return
 			end
 
-			Gamepasses[tostring(GamepassId)].Callback(Player, profile)()
+			Notify:Fire(Player, "Successfully purchased!")
+			Gamepasses[tostring(GamepassId)].Callback(Player, PlayerData)()
 		end
 	end
 

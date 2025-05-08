@@ -9,7 +9,7 @@ local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Source = ReplicatedStorage:WaitForChild("Source")
 
-local Signals = Source:WaitForChild("Events")
+local ReplicaClient = require(Source.Modules.ReplicaClient)
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -34,7 +34,6 @@ local AmountText = Info.Amount.Amount
 
 local SpinActivate = Info.Main.Spin
 
-local DataReplication = require(Signals.Data)
 local SpinFuncion = require(Shared.Functions.Spin)
 local Rewards = require(Shared.Data.Rewards)
 local SpinRewards = Rewards.Spin
@@ -42,19 +41,37 @@ local SpinRewards = Rewards.Spin
 local Fusion = require(Packages.Fusion)
 
 local scope = Fusion.scoped(Fusion)
-local peek = Fusion.peek
 local OnEvent = Fusion.OnEvent
+local peek = Fusion.peek
 
 local IsSpinning = false
 
+function InitSpinRewards()
+	for i, v in Wheel.Slices:GetChildren() do
+		if not v:IsA("Frame") then
+			continue
+		end
+
+		local Reward = SpinRewards[tonumber(v.Name)]
+
+		local Name = Reward.Name
+		local Image = Reward.Image
+
+		v.ImageLabel.Image = Image
+		v.TextLabel.Text = Name
+	end
+end
+
 function Controller.Start()
 	local GuiController = require(Source.Controllers.GuiController)
-	local SpinsValue = LocalPlayer:WaitForChild("Spins")
+	local DataController = require(Source.Controllers.DataController)
 
-	local Spins = scope:Value(SpinsValue.Value)
+	local ReplicateData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
 
-	SpinsValue.Changed:Connect(function()
-		Spins:set(SpinsValue.Value)
+	local Spins = scope:Value(ReplicateData.Data.Spins)
+
+	ReplicateData:OnSet({ "Spins" }, function(new, old)
+		Spins:set(new)
 	end)
 
 	scope:Hydrate(SpinButton)({
@@ -63,11 +80,11 @@ function Controller.Start()
 		end,
 	})
 
-	scope:Hydrate(CloseButton) {
+	scope:Hydrate(CloseButton)({
 		[OnEvent("Activated")] = function()
 			GuiController:Toggle(SpinMenu)
 		end,
-	}
+	})
 
 	scope:Hydrate(AmountText)({
 		Text = Spins,
@@ -75,6 +92,10 @@ function Controller.Start()
 
 	scope:Hydrate(SpinActivate)({
 		[OnEvent("Activated")] = function()
+			if peek(Spins) <= 0 then
+				return
+			end
+			
 			if IsSpinning then
 				return
 			end
@@ -88,24 +109,26 @@ function Controller.Start()
 				return
 			end
 
-			local Reward = SpinRewards[Index]
-			local amo = 0
+			local amo = 1
 			for i, v in SpinRewards do
 				amo += 1
 			end
+			local segmentAngle = 360 / amo
+			local baseAngle = (Index - 1) * segmentAngle
+			local centerOffset = segmentAngle / 2
+			local Angle = baseAngle + centerOffset
 
-			local Angle = (Index / amo) * 360
 			local Spins = math.random(8, 10) * 360
-			Angle += (Spins + math.random(-20, 20))
+			Angle += Spins
 
-			local Tween = TweenService:Create(Wheel, TweenInfo.new(5, Enum.EasingStyle.Quint) , { Rotation = Angle })
+			local Tween = TweenService:Create(Wheel, TweenInfo.new(6, Enum.EasingStyle.Quint), { Rotation = Angle })
 
 			Tween:Play()
 			Tween.Completed:Wait()
-			
-			--play sound
-			--Notifications.ClientNotify(RootGui, "You got : " .. RewardTitles[Index])
---[[
+
+			GuiController:Notify("You got : "..SpinRewards[Index].Name.." for a chance of "..(SpinRewards[Index].Chance * 100).."%!")
+
+			--[[
 			if RewardTitles[Index]:lower():match("coins") then
 				print("yes")
 				local c = game.SoundService.Coin:Clone()
@@ -124,6 +147,8 @@ function Controller.Start()
 			IsSpinning = false
 		end,
 	})
+
+	InitSpinRewards()
 end
 
 return Controller

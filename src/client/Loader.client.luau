@@ -28,7 +28,7 @@ end
 
 for i, v in CachedControllers do
     if v.Start then
-        v.Start()
+        task.defer(v.Start)
     end
 end
 

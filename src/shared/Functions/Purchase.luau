@@ -1,8 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Red = require(ReplicatedStorage.Packages.Red)
 
-return Red.Function("Gifts", function(Index)
-    return Index
+return Red.Function("Purchase", function(Type, Item)
+    return Type, Item
 end, function(Success)
     return Success
 end)

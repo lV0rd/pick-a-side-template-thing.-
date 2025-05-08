@@ -1,9 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundService = game:GetService("SoundService")
 
 --local SFX = SoundService.SFX
 
-local Component = require(ReplicatedStorage.Packages.Component)
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 local scoped = Fusion.scoped
@@ -12,7 +10,6 @@ local OnEvent = Fusion.OnEvent
 local module = {Tag = script.Name}
 module.__index = module
 
-local Speed = 4
 local FusionSpringSpeed = 20
 local Damp = .3
 
@@ -62,7 +59,6 @@ function module:init()
 end
 
 function module:_cleanup()
-	self._Trove:Destroy()
 	self.scope:doCleanup()
 	
 	table.clear(self)

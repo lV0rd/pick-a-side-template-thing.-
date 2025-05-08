@@ -1,0 +1,52 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Controller = {
+	Name = script.Name,
+}
+
+local Source = ReplicatedStorage:WaitForChild("Source")
+local Controllers = Source:WaitForChild("Controllers")
+local Modules = Source:WaitForChild("Modules")
+
+local DataController = require(Controllers.DataController)
+local ReplicaClient = require(Modules.ReplicaClient)
+
+local Packages = ReplicatedStorage:WaitForChild("Packages")
+
+local LocalPlayer = Players.LocalPlayer
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local RootGui = PlayerGui:WaitForChild("RootGui")
+
+local Canvas = RootGui.Canvas
+local Frames = Canvas.Frames
+local ShopMenu = Canvas.Menus.Shop
+
+local CoinsButton = Frames.Left.Coins.Button
+
+local Fusion = require(Packages.Fusion)
+
+local scope = Fusion.scoped(Fusion)
+local OnEvent = Fusion.OnEvent
+
+function Controller.Start()
+    local GuiController = require(Controllers.GuiController)
+    local ReplicaData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
+    local CoinsValue = scope:Value(ReplicaData.Data.Coins)
+
+    ReplicaData:OnSet({"Coins"}, function(new, old)
+        CoinsValue:set(new)
+    end)
+
+	scope:Hydrate(CoinsButton.Amount) {
+		Text = CoinsValue,
+	}
+
+    scope:Hydrate(CoinsButton) {
+        [OnEvent "MouseButton1Click"] = function()
+            GuiController:Toggle(ShopMenu)
+        end,
+    }
+end
+
+return Controller
