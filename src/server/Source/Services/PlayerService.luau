@@ -10,6 +10,7 @@ local IDs = require(ReplicatedStorage.Shared.Data.IDs)
 local Source = ServerStorage.Source
 local Modules = Source.Modules
 
+local Codes = require(Modules.Codes)
 local ProfileStore = require(Modules.ProfileStore)
 local ReplicaServer = require(Modules.ReplicaServer)
 
@@ -23,9 +24,13 @@ local LocalDataReplicaToken = ReplicaServer.Token("LocalData")
 
 local Shared = ReplicatedStorage.Shared
 local Data = Shared.Data
+local Events = Shared.Events
 
 local Dances = require(Data.Dances)
 local Swords = require(Data.Swords)
+
+local CodeRedeem = require(Events.Codes):Server()
+local Notify = require(Events.Notify):Server()
 
 local Service = {
 	Name = script.Name,
@@ -42,7 +47,7 @@ export type PlayerData = {
 	LocalData: ReplicaServer.Replica,
 }
 
-function Service:GetAllPlayers()
+function Service:GetAllPlayers() : {[Player]: PlayerData}
 	return self.Players
 end
 
@@ -206,5 +211,29 @@ Clock.Tick:Connect(function()
 end)
 
 Clock:Start()
+
+CodeRedeem:On(function(Player : Player, Code : string)
+	local PlayerData = Service:GetPlayer(Player)
+	if not PlayerData then
+		return
+	end
+
+	local Replica = PlayerData.Replica
+	local Data = Replica.Data
+
+	if not Codes[Code] then
+		Notify:Fire(Player, "Invalid code!")
+		return
+	end
+
+	if Data.Codes[Code] then
+		Notify:Fire(Player, "Code already redeemed!")
+		return
+	end
+
+	Data.Codes[Code] = true
+	Notify:Fire(Player, "Successfuly redeemed "..Code.."!")
+	Codes[Code](Player, PlayerData)
+end)
 
 return Service

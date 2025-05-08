@@ -174,6 +174,7 @@ function NotifyUi(Latest)
 
 	if ClaimedSize == RewardsSize then
 		GiftTimer.Text = "Claimed!"
+		GiftsButton.Icon.Visible = false
 		Connection:Disconnect()
 		Connection = nil
 	else

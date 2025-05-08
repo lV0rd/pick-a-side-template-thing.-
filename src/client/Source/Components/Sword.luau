@@ -33,4 +33,6 @@ function module:_cleanup()
 	setmetatable(self, nil)
 end
 
+module.Destroy = module._cleanup
+
 return module

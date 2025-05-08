@@ -14,6 +14,8 @@ return {
     EquippedSword = "ClassicSword",
     EquippedEmote = "Default",
 
+    Codes = {},
+
     Gamepasses = {},
     PurchaseIdCache = {},
 
