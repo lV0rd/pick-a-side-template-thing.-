@@ -8,6 +8,9 @@ local Controller = {
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Source = ReplicatedStorage:WaitForChild("Source")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+
+local Events = Shared:WaitForChild("Events")
+
 local Dances = require(Shared.Data.Dances)
 
 local DataController = require(Source.Controllers.DataController)
@@ -30,17 +33,20 @@ local CloseButton = DanceMenu.Close
 
 local Fusion = require(Packages.Fusion)
 
+local Purchase = require(Events.Purchase):Client()
+local Equip = require(Events.Equip):Client()
+
 local scope = Fusion.scoped(Fusion)
 local OnEvent = Fusion.OnEvent
 local Children = Fusion.Children
 
-local Values = {}
-local Equipped = scope:Value("")
-local Coins = scope:Value(0)
-
 function Controller.Start()
 	local GuiController = require(Source.Controllers.GuiController)
 	local PlayerData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
+
+	local Values = {}
+	local Equipped = scope:Value("")
+	local Coins = scope:Value(0)
 
 	for i, v in PlayerData.Data.Emotes do
 		Values[i] = scope:Value(v)
@@ -49,17 +55,25 @@ function Controller.Start()
 	Equipped:set(PlayerData.Data.EquippedEmote)
 	Coins:set(PlayerData.Data.Coins)
 
-	PlayerData:OnSet({ "Coins" }, function()
+	PlayerData:OnSet({ "Coins" }, function(new, old)
 		Coins:set(PlayerData.Data.Coins)
 	end)
 
-	PlayerData:OnSet({ "Emotes" }, function()
-		for i, v in PlayerData.Data.Emotes do
-			Values[i] = scope:Value(v)
+	PlayerData:OnChange(function(type, path, index: number, id: string)
+		if path[1] == "Emotes" then
+			if type == "Set" then
+				for i, v in PlayerData.Data.Emotes do
+					if Values[i] then
+						Values[i]:set(v)
+					else
+						Values[i] = scope:Value(v)
+					end
+				end
+			end
 		end
 	end)
 
-	PlayerData:OnSet({ "EquippedEmote" }, function()
+	PlayerData:OnSet({"EquippedEmote"}, function(new, old)
 		Equipped:set(PlayerData.Data.EquippedEmote)
 	end)
 
@@ -88,54 +102,56 @@ function Controller.Start()
 					BackgroundColor3 = Color3.fromRGB(32, 212, 101),
 					Text = DanceData.Name,
 
+					LayoutOrder = DanceData.Order,
+
 					[Children] = {
-						scope:New "UICorner" {
-							CornerRadius = UDim.new(.2, 0)
-						},
+						scope:New("UICorner")({
+							CornerRadius = UDim.new(0.2, 0),
+						}),
 
 						scope:New("TextLabel")({
 							Name = "DanceName",
 							Text = DanceData.Name,
 							Size = UDim2.fromScale(1, 1),
 							BackgroundTransparency = 1,
+							TextScaled = true,
 						}),
 
 						scope:New("TextLabel")({
 							Name = "DancePrice",
+							TextScaled = true,
 							Text = scope:Computed(function(use)
-								local Index = Values[DanceData.Name]
+								local Index = use(Values[DanceData.Name])
 
-								if not Index then
+								if Index == nil then
 									return "NaN"
 								end
 
 								if use(Equipped) == DanceData.Name then
 									return "Equipped"
-								else
-									if DanceData.Currency == "Robux" then
-										if use(Index) then
-											return "Equip"
-										else
-											local Success, Info = pcall(function()
-												return MarketplaceService:GetProductInfo(DanceData.ID)
-											end)
-
-											if Success then
-												return "Buy " .. Info.PriceInRobux .. "\u{E002}"
-											else
-												return "Buy"
-											end
-										end
-									elseif DanceData.Currency == "Coins" then
-										if use(Index) then
-											return "Equip"
-										else
-											return "Buy: " .. DanceData.Price
-										end
+								elseif DanceData.Currency == "Robux" then
+									if Index then
+										return "Equip"
 									else
-										if use(Index) then
-											return "Equip"
+										local Success, Info = pcall(function()
+											return MarketplaceService:GetProductInfo(tonumber(DanceData.ID))
+										end)
+
+										if Success then
+											return "Buy " .. Info.PriceInRobux .. "\u{E002}"
+										else
+											return "Buy"
 										end
+									end
+								elseif DanceData.Currency == "Coins" then
+									if Index then
+										return "Equip"
+									else
+										return "Buy: " .. DanceData.Price
+									end
+								else
+									if Index then
+										return "Equip"
 									end
 								end
 
@@ -149,7 +165,13 @@ function Controller.Start()
 					},
 
 					[OnEvent("MouseButton1Click")] = function()
-						print("Click")
+						if PlayerData.Data.Emotes[DanceData.Name] then
+							Equip:Fire("Emote", DanceData.Name)
+						else
+							if DanceData.Currency == "Coins" then
+								Purchase:Fire("Emote", DanceData.Name)
+							end
+						end
 					end,
 				})
 			end),

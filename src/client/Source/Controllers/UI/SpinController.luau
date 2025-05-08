@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Controller = {
 	Name = script.Name,
@@ -33,6 +34,7 @@ local Info = SpinMenu.Info
 local AmountText = Info.Amount.Amount
 
 local SpinActivate = Info.Main.Spin
+local ThreeDWheel = workspace.Wheel :: Model
 
 local SpinFuncion = require(Shared.Functions.Spin)
 local Rewards = require(Shared.Data.Rewards)
@@ -95,7 +97,7 @@ function Controller.Start()
 			if peek(Spins) <= 0 then
 				return
 			end
-			
+
 			if IsSpinning then
 				return
 			end
@@ -126,19 +128,13 @@ function Controller.Start()
 			Tween:Play()
 			Tween.Completed:Wait()
 
-			GuiController:Notify("You got : "..SpinRewards[Index].Name.." for a chance of "..(SpinRewards[Index].Chance * 100).."%!")
-
-			--[[
-			if RewardTitles[Index]:lower():match("coins") then
-				print("yes")
-				local c = game.SoundService.Coin:Clone()
-				c.Parent = game.SoundService
-				c.Volume = 0.8
-				c:Play()
-				c.Ended:Once(function()
-					c:Destroy()
-				end)
-			end]]
+			GuiController:Notify(
+				"You got : "
+					.. SpinRewards[Index].Name
+					.. " for a chance of "
+					.. (SpinRewards[Index].Chance * 100)
+					.. "%!"
+			)
 
 			task.wait(2)
 
@@ -149,6 +145,40 @@ function Controller.Start()
 	})
 
 	InitSpinRewards()
+
+	local Debounce = tick()
+	local Opened = false
+
+	RunService.PostSimulation:Connect(function()
+		if tick() - Debounce < 0.5 then
+			return
+		end
+
+		Debounce = tick()
+
+		local Character = LocalPlayer.Character
+		if not Character then
+			if GuiController.States.CurrentOpenMenu == SpinMenu then
+				GuiController:Toggle(SpinMenu)
+			end
+			return
+		end
+
+		local Distance = (Character:GetPivot().Position - ThreeDWheel:GetPivot().Position).Magnitude
+		if Distance <= 15 then
+			if not GuiController.States.CurrentOpenMenu then
+				if not Opened then
+					Opened = true
+					GuiController:Toggle(SpinMenu)
+				end
+			end
+		else
+			if Opened then
+				Opened = false
+				GuiController:Toggle(SpinMenu)
+			end
+		end
+	end)
 end
 
 return Controller

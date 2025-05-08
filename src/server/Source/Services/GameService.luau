@@ -140,7 +140,7 @@ function StartGame()
 	BlueSound:Stop()
 
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
-	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = false
+	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Visible = false
 
 	task.wait(0.5)
 	GameData.Status:set(RedIndex.Name)

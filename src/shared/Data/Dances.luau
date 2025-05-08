@@ -5,6 +5,8 @@ return {
         Instance = ReplicatedStorage.Assets.Animations.Default,
         Currency = "Free",
         Name = "Default",
+
+        Order = 1
     },
     
     ["Money"] = {
@@ -12,6 +14,8 @@ return {
         Currency = "Coins",
         Name = "Money",
         Price = 1000,
+
+        Order = 2
     },
 
     ["Special"] = {
@@ -19,5 +23,7 @@ return {
         Currency = "Robux",
         Name = "Special",
         ID = "1000",
+
+        Order = 3
     },
 }

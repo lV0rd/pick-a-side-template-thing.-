@@ -1,7 +1,7 @@
 return {
     Wins = 0,
     Kills = 0,
-    Coins = 100,
+    Coins = 1000000,
     Spins = 7,
 
     FirstLogin = 0,
