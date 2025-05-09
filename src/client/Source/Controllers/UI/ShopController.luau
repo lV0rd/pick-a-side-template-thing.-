@@ -36,11 +36,11 @@ function Controller.Start()
 		end,
 	})
 
-	scope:Hydrate(CloseButton) {
+	scope:Hydrate(CloseButton)({
 		[OnEvent("Activated")] = function()
 			GuiController:Toggle(ShopMenu)
 		end,
-	}
+	})
 end
 
 return Controller

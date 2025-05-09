@@ -40,11 +40,9 @@ function InitButtons()
 
 		Button.Parent = SwordsMenu.Elements
 
-		scope:Hydrate(Button) {
-			[OnEvent("Activated")] = function()
-				
-			end,
-		}
+		scope:Hydrate(Button)({
+			[OnEvent("Activated")] = function() end,
+		})
 	end
 end
 
@@ -81,11 +79,11 @@ function Controller.Start()
 		end,
 	})
 
-	scope:Hydrate(CloseButton) {
+	scope:Hydrate(CloseButton)({
 		[OnEvent("Activated")] = function()
 			GuiController:Toggle(SwordsMenu)
 		end,
-	}
+	})
 end
 
 return Controller

@@ -119,8 +119,6 @@ function UpdateUi()
 		local Button = v.TextButton
 		local Timer = Button.Timer
 
-		
-
 		local Info = Rewards.Gifts[Index]
 
 		if Claimed[Index] then
@@ -136,7 +134,7 @@ function UpdateUi()
 		local now = workspace:GetServerTimeNow()
 		local StartTime = LocalPlayer:GetAttribute("StartTime") or Start
 		local TimeLeft = math.clamp(Info.Time - (now - StartTime), 0, Info.Time)
-		
+
 		if TimeLeft <= 0 then
 			Claimable[Index] = true
 		end
@@ -146,7 +144,7 @@ function UpdateUi()
 				Latest = TimeLeft
 			end
 		end
-		
+
 		Timer.Text = toMS(TimeLeft)
 	end
 

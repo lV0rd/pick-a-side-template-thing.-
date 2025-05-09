@@ -16,8 +16,7 @@ local ReplicaServer = require(Modules.ReplicaServer)
 
 local Template = require(Modules.ProfileTemplate)
 
-local PlayerStore = ProfileStore.New("GameTestingDataStudio"..tostring(tick())
-, Template)
+local PlayerStore = ProfileStore.New("GameTestingDataStudio" .. tostring(tick()), Template)
 
 local PlayerDataReplicaToken = ReplicaServer.Token("PlayerData")
 local LocalDataReplicaToken = ReplicaServer.Token("LocalData")
@@ -47,7 +46,7 @@ export type PlayerData = {
 	LocalData: ReplicaServer.Replica,
 }
 
-function Service:GetAllPlayers() : {[Player]: PlayerData}
+function Service:GetAllPlayers(): { [Player]: PlayerData }
 	return self.Players
 end
 
@@ -104,7 +103,6 @@ function Service:PlayerJoin(Player: Player)
 				Player = Player,
 			},
 			Data = Profile.Data,
-			
 		}),
 
 		LocalData = ReplicaServer.New({
@@ -116,7 +114,6 @@ function Service:PlayerJoin(Player: Player)
 				Gifts = {},
 				SpinHistory = {},
 			},
-			
 		}),
 	}
 
@@ -132,31 +129,31 @@ function Service:PlayerJoin(Player: Player)
 			end
 
 			if v.Currency == "Robux" then
-				if Data.Replica.Data.Gamepasses[v.ID] then 
-					Data.Replica:Set({"Emotes", v.Name}, true)
+				if Data.Replica.Data.Gamepasses[v.ID] then
+					Data.Replica:Set({ "Emotes", v.Name }, true)
 				end
 			end
-			Data.Replica:Set({"Emotes", v.Name}, false)
+			Data.Replica:Set({ "Emotes", v.Name }, false)
 		end
 	end)
 
 	task.spawn(function()
-        local Replica = Data.Replica
-        local Data = Replica.Data
-        local Gamepasses = Data.Gamepasses
+		local Replica = Data.Replica
+		local Data = Replica.Data
+		local Gamepasses = Data.Gamepasses
 		for ID, Gamepass in IDs.Gamepasses do
-            local Owns = MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(ID))
-			
-            local CurrentState = Gamepasses[ID]
+			local Owns = MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(ID))
 
-            if Owns and not CurrentState then
-                Replica:Set({"Gamepasses", ID}, true)
-            elseif CurrentState == nil then
-				Replica:Set({"Gamepasses", ID}, false)
-            end
+			local CurrentState = Gamepasses[ID]
+
+			if Owns and not CurrentState then
+				Replica:Set({ "Gamepasses", ID }, true)
+			elseif CurrentState == nil then
+				Replica:Set({ "Gamepasses", ID }, false)
+			end
 		end
 	end)
-	
+
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 	leaderstats.Parent = Player
@@ -212,7 +209,7 @@ end)
 
 Clock:Start()
 
-CodeRedeem:On(function(Player : Player, Code : string)
+CodeRedeem:On(function(Player: Player, Code: string)
 	local PlayerData = Service:GetPlayer(Player)
 	if not PlayerData then
 		return
@@ -232,7 +229,7 @@ CodeRedeem:On(function(Player : Player, Code : string)
 	end
 
 	Data.Codes[Code] = true
-	Notify:Fire(Player, "Successfuly redeemed "..Code.."!")
+	Notify:Fire(Player, "Successfuly redeemed " .. Code .. "!")
 	Codes[Code](Player, PlayerData)
 end)
 

@@ -73,7 +73,7 @@ function Controller.Start()
 		end
 	end)
 
-	PlayerData:OnSet({"EquippedEmote"}, function(new, old)
+	PlayerData:OnSet({ "EquippedEmote" }, function(new, old)
 		Equipped:set(PlayerData.Data.EquippedEmote)
 	end)
 

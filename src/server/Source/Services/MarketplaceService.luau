@@ -133,15 +133,15 @@ function Service.Start()
 				end
 
 				if id == tostring(GamepassId) then
-					PlayerData.Replica:Set({"Gamepasses", id}, true)
+					PlayerData.Replica:Set({ "Gamepasses", id }, true)
 					continue
 				end
 
-				PlayerData.Replica:Set({"Gamepasses", id}, false)
+				PlayerData.Replica:Set({ "Gamepasses", id }, false)
 			end
 
 			if not PlayerData.Replica.Data.Gamepasses[tostring(GamepassId)] then
-				PlayerData.Replica:Set({"Gamepasses", tostring(GamepassId)}, true)
+				PlayerData.Replica:Set({ "Gamepasses", tostring(GamepassId) }, true)
 			else
 				return
 			end

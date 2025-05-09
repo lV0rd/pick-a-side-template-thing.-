@@ -27,26 +27,43 @@ local CoinsButton = Frames.Left.Coins.Button
 local Fusion = require(Packages.Fusion)
 
 local scope = Fusion.scoped(Fusion)
+local peek = Fusion.peek
 local OnEvent = Fusion.OnEvent
 
 function Controller.Start()
-    local GuiController = require(Controllers.GuiController)
-    local ReplicaData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
-    local CoinsValue = scope:Value(ReplicaData.Data.Coins)
+	local GuiController = require(Controllers.GuiController)
+	local ReplicaData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
+	local CoinsValue = scope:Value(ReplicaData.Data.Coins)
 
-    ReplicaData:OnSet({"Coins"}, function(new, old)
-        CoinsValue:set(new)
-    end)
+	local Swing = scope:Value(false)
 
-	scope:Hydrate(CoinsButton.Amount) {
+	ReplicaData:OnSet({ "Coins" }, function(new, old)
+		CoinsValue:set(new)
+		if new > old then
+			if peek(Swing) then
+				return
+			end
+
+			Swing:set(true)
+			task.delay(.1, function()
+				Swing:set(false)
+			end)
+		end
+	end)
+
+	scope:Hydrate(CoinsButton.Amount)({
 		Text = CoinsValue,
-	}
+	})
 
-    scope:Hydrate(CoinsButton) {
-        [OnEvent "MouseButton1Click"] = function()
-            GuiController:Toggle(ShopMenu)
-        end,
-    }
+	scope:Hydrate(CoinsButton)({
+		Rotation = scope:Spring(scope:Computed(function(use)
+			return use(Swing) and -10 or 0
+		end), 50, .4),
+
+		[OnEvent("MouseButton1Click")] = function()
+			GuiController:Toggle(ShopMenu)
+		end,
+	})
 end
 
 return Controller

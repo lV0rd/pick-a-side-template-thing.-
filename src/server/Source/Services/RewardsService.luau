@@ -63,8 +63,8 @@ function Service.Start()
 			return nil
 		end
 
-		PlayerData.Replica:Set({"Spins"}, PlayerData.Replica.Data.Spins - 1)
-		
+		PlayerData.Replica:Set({ "Spins" }, PlayerData.Replica.Data.Spins - 1)
+
 		Reward.Callback(Player, PlayerData)
 
 		return Index
@@ -77,9 +77,9 @@ function Service.Start()
 				return false, "Data not found"
 			end
 
-            if PlayerData.Replica.Data.Followed then
-                return false, "Already followed"
-            end
+			if PlayerData.Replica.Data.Followed then
+				return false, "Already followed"
+			end
 
 			local Id = Player.UserId
 			local Api = "https://friends.roproxy.com/v1/users/" .. Id .. "/followings?sortOrder=Desc&limit=100"
@@ -103,7 +103,7 @@ function Service.Start()
 
 			if #FollowCount >= #Rewards.Follow.List then
 				Rewards.Follow.Callback(Player, PlayerData)
-				PlayerData.Replica:Set({"Followed"}, true)
+				PlayerData.Replica:Set({ "Followed" }, true)
 				return true, "Followed"
 			end
 
@@ -116,7 +116,7 @@ function Service.Start()
 			return false, "Error with fetching follow data"
 		end
 	end)
-	
+
 	Gifts:SetCallback(function(Player: Player, Index: number)
 		local PlayerData = PlayerService:GetPlayer(Player)
 		if not PlayerData then
@@ -151,7 +151,7 @@ function Service.Start()
 		end
 
 		Notify:Fire(Player, "Claimed gift! Thanks for playing!")
-		PlayerData.LocalData:Set({"Gifts", Name}, true)
+		PlayerData.LocalData:Set({ "Gifts", Name }, true)
 		Info.Reward(Player, PlayerData)
 
 		return true

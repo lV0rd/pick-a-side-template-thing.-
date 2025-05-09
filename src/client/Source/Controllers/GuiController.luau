@@ -84,7 +84,7 @@ function Controller:Notify(Message, WaitTime)
 	New.Size = UDim2.fromScale(1, 0)
 	New.Parent = Notifications
 
-	Spr.target(New, .5, 5, {Size = OldSize})
+	Spr.target(New, 0.5, 5, { Size = OldSize })
 	Spr.completed(New, function()
 		Debris:AddItem(New, WaitTime or 5)
 	end)

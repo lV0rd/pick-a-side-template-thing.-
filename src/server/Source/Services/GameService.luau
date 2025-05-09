@@ -5,6 +5,9 @@ local Teams = game:GetService("Teams")
 
 local Source = ServerStorage.Source
 local Services = Source.Services
+local Modules = Source.Modules
+
+local ReplicaServer = require(Modules.ReplicaServer)
 
 local PlayerService = require(Services.PlayerService)
 
@@ -27,20 +30,32 @@ local Params = RaycastParams.new()
 Params.FilterType = Enum.RaycastFilterType.Include
 Params.FilterDescendantsInstances = { VotingPlatforms }
 
-local BlueTeam : Team = Teams.Blue
-local RedTeam : Team = Teams.Red
+local BlueTeam: Team = Teams.Blue
+local RedTeam: Team = Teams.Red
 
 local Barrier = workspace.Barrier
 
 local Items = ReplicatedStorage.Assets.Items
 local Animations = ReplicatedStorage.Assets.Animations
 
+local GameDataReplica = ReplicaServer.New({
+	Token = ReplicaServer.Token("GameData"),
+	Data = {
+		Status = "Intermission",
+		Time = 0,
+		Visible = false,
+		BarVisible = false,
+	},
+})
+
+GameDataReplica:Replicate()
+
 local Service = {
 	Name = script.Name,
 
 	GameData = {
 		Started = false,
-		Players = {} :: {[Player]: PlayerService.PlayerData},
+		Players = {} :: { [Player]: PlayerService.PlayerData },
 
 		IntermissionTime = 0,
 		VotingTime = 0,
@@ -61,7 +76,7 @@ local function getTriangularGridOffset(index: number): Vector3
 	local xSpacing, zSpacing = 3, 2.5
 	local x = (posInRow - row / 2) * xSpacing
 	local z = row * zSpacing
-	return Vector3.new(x, 0, z) - Vector3.new(2,0,0)
+	return Vector3.new(x, 0, z) - Vector3.new(2, 0, 0)
 end
 
 function GetQueLenght(): number
@@ -77,17 +92,21 @@ function StartIntermission()
 
 	if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 		GameData.Status:set("Not enough players!")
-		task.wait(.1)
+		task.wait(0.1)
 		StartIntermission()
 		return
 	end
 
 	GameData.IntermissionTime = Settings.INTERMISSION_TIME
+	GameDataReplica:Set({ "Status" }, "Intermission")
+	GameDataReplica:Set({ "Visible" }, true)
+	GameDataReplica:Set({ "BarVisible" }, true)
 
 	while GameData.IntermissionTime > 0 do
 		task.wait(1)
-		GameData.IntermissionTime -= 1
+		GameDataReplica:Set({ "Time" }, GameData.IntermissionTime)
 		GameData.Status:set("Intermission: " .. GameData.IntermissionTime .. " seconds left")
+		GameData.IntermissionTime -= 1
 
 		if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 			task.wait(1)
@@ -109,6 +128,7 @@ function StartGame()
 	local GameData = Service.GameData
 
 	GameData.Started = true
+	GameDataReplica:Set({ "Visible" }, false)
 
 	local BrainrotsLenght = #Brainrots
 
@@ -161,10 +181,10 @@ function StartGame()
 	Invisible:FireAll(true)
 
 	local voting_conn
-	local votes = {blue = {}, red = {}}
+	local votes = { blue = {}, red = {} }
 
 	voting_conn = RunService.PostSimulation:Connect(function()
-		for player : Player, playerData in GameData.Players do
+		for player: Player, playerData in GameData.Players do
 			if player:GetAttribute("OptionSelected") then
 				continue
 			end
@@ -177,29 +197,28 @@ function StartGame()
 			if not character then
 				continue
 			end
-			
+
 			local humanoid = character.Humanoid :: Humanoid
 
 			local hit = workspace:Raycast(character:GetPivot().Position, Vector3.yAxis * -10, Params)
 
 			if hit ~= nil then
 				player:SetAttribute("OptionSelected", hit.Instance.Parent.Name)
-				
+
 				if hit.Instance.Parent.Name == "Blue" then
 					table.insert(votes.blue, player)
 					local index = #votes.blue - 1
 					local offset = getTriangularGridOffset(index)
-					
+
 					local basePosition = hit.Instance.Position
 					local newPos = basePosition + offset
-					
+
 					local rootPart = character:FindFirstChild("HumanoidRootPart")
 					if rootPart then
 						humanoid.WalkSpeed = 0
 						humanoid.JumpPower = 0
 						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
 					end
-					
 				else
 					table.insert(votes.red, player)
 					local index = #votes.red - 1
@@ -214,7 +233,6 @@ function StartGame()
 						humanoid.JumpPower = 0
 						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
 					end
-					
 				end
 				--character.HumanoidRootPart.CFrame = CFrame.new(
 				--	hit.Position.X + math.random(-3, 3),
@@ -225,7 +243,11 @@ function StartGame()
 		end
 	end)
 
+	GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
+	GameDataReplica:Set({ "Visible" }, true)
+
 	for i = Settings.VOTING_TIME, 0, -1 do
+		GameDataReplica:Set({ "Time" }, i)
 		GameData.Status:set("Select a meme! " .. i .. " seconds left")
 		task.wait(1)
 	end
@@ -235,12 +257,13 @@ function StartGame()
 	Barrier.CanCollide = true
 
 	GameData.Status:set("Fight!")
+	GameDataReplica:Set({ "Status" }, "Fight!")
 
 	local option_a_players = 0
 	local option_b_players = 0
 
 	-- count votes, create teams
-	for player : Player, playerData in GameData.Players do
+	for player: Player, playerData in GameData.Players do
 		local option_selected = player:GetAttribute("OptionSelected")
 
 		if option_selected ~= nil then
@@ -259,7 +282,7 @@ function StartGame()
 			end
 
 			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
-			
+
 			if not humanoid then
 				continue
 			end
@@ -309,12 +332,13 @@ function StartGame()
 				break
 			end
 
+			GameDataReplica:Set({ "Timer" }, i)
 			GameData.Status:set("Fight! " .. i .. " seconds left")
 			task.wait(1)
 		end
 	end
 
-	for v : Player, playerData in GameData.Players do
+	for v: Player, playerData in GameData.Players do
 		v.Backpack:ClearAllChildren()
 
 		if v.Character and v.Character:FindFirstChildOfClass("Tool") then
@@ -338,6 +362,8 @@ function StartGame()
 	end
 
 	print(winner)
+	GameDataReplica:Set({ "BarVisible" }, false)
+	GameDataReplica:Set({ "Status" }, winner and winner.Name .. " Team Wins!" or "No winner!")
 	GameData.Status:set(winner and winner.Name .. " Team Wins!" or "No winner!")
 
 	if winner then
@@ -347,20 +373,20 @@ function StartGame()
 			if not PlayerData then
 				continue
 			end
-	
+
 			local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
 
 			if EquippedEmote == "" then
 				EquippedEmote = "Default"
 			end
 
-			PlayerData.Replica:Set({"Wins"}, PlayerData.Replica.Data.Wins + 1)
-			PlayerData.Replica:Set({"Coins"}, PlayerData.Replica.Data.Coins + 500)
+			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + 1)
+			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500)
 
 			print(PlayerData.Replica)
 
 			player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
-	
+
 			local character = player.Character
 			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
 			local animator = humanoid:FindFirstChild("Animator") :: Animator
@@ -370,14 +396,16 @@ function StartGame()
 			AnimationTrack:Play()
 		end
 	end
-	
+
 	for i = Settings.CELEBRATE_TIME, 0, -1 do
-		workspace:SetAttribute("Countdown", i)
+		if i == math.ceil(Settings.CELEBRATE_TIME / 3) then
+			GameDataReplica:Set({ "Visible" }, false)
+		end
 		task.wait(1)
 	end
 
 	-- cleanup players
-	for player : Player, playerData in GameData.Players do
+	for player: Player, playerData in GameData.Players do
 		player:SetAttribute("OptionSelected", nil)
 		player.Team = Teams.Lobby
 		player.TeamColor = BrickColor.White()
@@ -385,13 +413,12 @@ function StartGame()
 		task.spawn(player.LoadCharacter, player)
 	end
 
-
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
 
 	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
-	
+
 	table.clear(votes.blue)
 	table.clear(votes.red)
 

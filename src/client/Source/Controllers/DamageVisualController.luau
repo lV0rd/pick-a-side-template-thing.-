@@ -11,8 +11,8 @@ local TweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirecti
 function InitPlayer(Player: Player)
 	Connections[Player] = {}
 
-    local function Spawn(Character)
-        if Connections[Player].Health then
+	local function Spawn(Character)
+		if Connections[Player].Health then
 			Connections[Player].Health:Disconnect()
 			Connections[Player].Health = nil
 		end
@@ -36,11 +36,11 @@ function InitPlayer(Player: Player)
 				OldHealth = Humanoid.Health
 			end
 		end)
-    end
+	end
 
-    if Player.Character then
-        Spawn(Player.Character)
-    end
+	if Player.Character then
+		Spawn(Player.Character)
+	end
 
 	Connections[Player].Spawn = Player.CharacterAdded:Connect(Spawn)
 end

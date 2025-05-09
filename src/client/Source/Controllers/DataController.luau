@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Controller = {
 	Name = script.Name,
 
-	States = {PlayerData = nil, LocalData = nil},
+	States = { PlayerData = nil, LocalData = nil, GameData = nil },
 }
 
 local Source = ReplicatedStorage:WaitForChild("Source")
@@ -15,6 +15,7 @@ local Signal = require(Packages.Signal)
 Controller.Signals = {
 	PlayerDataChanged = Signal.new(),
 	LocalDataChanged = Signal.new(),
+	GameDataChanged = Signal.new(),
 }
 
 local LocalPlayer = Players.LocalPlayer
@@ -22,9 +23,9 @@ local LocalPlayer = Players.LocalPlayer
 local ReplicaClient = require(Modules.ReplicaClient)
 
 ReplicaClient.OnNew("PlayerData", function(replica: ReplicaClient.Replica)
-    local is_local = replica.Tags.Player == LocalPlayer
+	local is_local = replica.Tags.Player == LocalPlayer
 	if not is_local then
-        return
+		return
 	end
 
 	Controller.States.PlayerData = replica
@@ -33,10 +34,14 @@ end)
 ReplicaClient.OnNew("LocalData", function(replica: ReplicaClient.Replica)
 	local is_local = replica.Tags.Player == LocalPlayer
 	if not is_local then
-        return
+		return
 	end
 
 	Controller.States.LocalData = replica
+end)
+
+ReplicaClient.OnNew("GameData", function(replica: ReplicaClient.Replica)
+	Controller.States.GameData = replica
 end)
 
 ReplicaClient.RequestData()
@@ -46,7 +51,7 @@ function Controller:GetPlayerDataAsync()
 		task.wait()
 	end
 
-    return Controller.States.PlayerData
+	return Controller.States.PlayerData
 end
 
 function Controller:GetLocalDataAsync()
@@ -55,6 +60,14 @@ function Controller:GetLocalDataAsync()
 	end
 
 	return Controller.States.LocalData
+end
+
+function Controller:GetGameDataAsync()
+	while Controller.States.GameData == nil do
+		task.wait()
+	end
+
+	return Controller.States.GameData
 end
 
 return Controller

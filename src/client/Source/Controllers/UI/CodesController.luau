@@ -33,29 +33,29 @@ local scope = Fusion.scoped(Fusion)
 local OnEvent = Fusion.OnEvent
 
 function Controller.Start()
-    local GuiController = require(Controllers.GuiController)
+	local GuiController = require(Controllers.GuiController)
 
-    scope:Hydrate(CodesButton) {
-        [OnEvent "MouseButton1Click"] = function()
-            GuiController:Toggle(CodesMenu)
-        end,
-    }
+	scope:Hydrate(CodesButton)({
+		[OnEvent("MouseButton1Click")] = function()
+			GuiController:Toggle(CodesMenu)
+		end,
+	})
 
-    scope:Hydrate(CloseButton) {
-        [OnEvent "MouseButton1Click"] = function()
-            GuiController:Toggle(CodesMenu)
-        end
-    }
+	scope:Hydrate(CloseButton)({
+		[OnEvent("MouseButton1Click")] = function()
+			GuiController:Toggle(CodesMenu)
+		end,
+	})
 
-    scope:Hydrate(Redeem) {
-        [OnEvent "FocusLost"] = function(EnterPressed)
-            if not EnterPressed then
-                return
-            end
+	scope:Hydrate(Redeem)({
+		[OnEvent("FocusLost")] = function(EnterPressed)
+			if not EnterPressed then
+				return
+			end
 
-            CodeRedeem:Fire(Redeem.Text)
-        end
-    }
+			CodeRedeem:Fire(Redeem.Text)
+		end,
+	})
 end
 
 return Controller

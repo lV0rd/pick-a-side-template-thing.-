@@ -42,9 +42,9 @@ function module.new(Instance: Model)
 	local self = setmetatable({
 		Instance = Instance :: Model,
 		Janitor = Janitor.new(),
-		Debounce = tick() :: number,
+		Debounce = 0 :: number,
 		OrderedDatastore = nil :: OrderedDataStore?,
-        Cache = nil :: DataStorePages?,
+		Cache = nil :: DataStorePages?,
 	}, module)
 
 	self:init()
@@ -72,12 +72,12 @@ function module:init()
 
 	self.Janitor:Add(RunService.Heartbeat:Connect(function(dt)
 		if tick() - self.Debounce < DEBOUNCE_LIMIT then
-            return
+			return
 		end
 
-        self.Debounce = tick()
+		self.Debounce = tick()
 
-        local Players = PlayerService:GetAllPlayers()
+		local Players = PlayerService:GetAllPlayers()
 
 		for Player, PlayerData in Players do
 			local Replica = PlayerData.Replica
@@ -94,66 +94,66 @@ function module:init()
 			end):Await()
 		end
 
-        for i, v in ListFrame:GetChildren() do
-            if v:IsA("UIListLayout") then
-                continue
-            end
+		for i, v in ListFrame:GetChildren() do
+			if v:IsA("UIListLayout") then
+				continue
+			end
 
-            v:Destroy()
-        end
+			v:Destroy()
+		end
 
-        local Success, Top100 = Future.Try(function()
-            return self.OrderedDatastore:GetSortedAsync(false, 100):GetCurrentPage()
-        end):Await()
+		local Success, Top100 = Future.Try(function()
+			return self.OrderedDatastore:GetSortedAsync(false, 100):GetCurrentPage()
+		end):Await()
 
-        if not Success then
-            if self.Cache then 
-                Top100 = self.Cache
-            end
+		if not Success then
+			if self.Cache then
+				Top100 = self.Cache
+			end
 
-            return
-        end
+			return
+		end
 
-        self.Cache = Top100
+		self.Cache = Top100
 
-        for i, v in ipairs(self.Cache) do
-            local UserId = v.key
-            local Value = v.value
+		for i, v in ipairs(self.Cache) do
+			local UserId = v.key
+			local Value = v.value
 
-            local Username = "N/A"
-            local Color = Color3.fromRGB(38, 50, 56)
-    
-            if Value < MIN_VALUE_DISPLAY or Value > MAX_VALUE_DISPLAY then
-                continue
-            end
-    
-            Future.Try(function()
-                Username = game.Players:GetNameFromUserIdAsync(UserId)
-            end)
-    
-            if Username == "EpicBlacklistedUser" then
-                continue -- Skip blacklisted users
-            end
-    
-            if i == 1 then
-                Color = Color3.fromRGB(255, 215, 0)
-            elseif i == 2 then
-                Color = Color3.fromRGB(192, 192, 192)
-            elseif i == 3 then
-                Color = Color3.fromRGB(205, 127, 50)
-            end
-    
-            local Item = LeaderboardTemplate:Clone()
+			local Username = "N/A"
+			local Color = Color3.fromRGB(38, 50, 56)
 
-            Item.Name = Username
-            Item.LayoutOrder = i
-            Item.Rank.TextColor3 = Color
-            Item.Rank.Text = "#"..tostring(i)
-            Item.Username.Text = Username
-            Item.Amount.Text = tostring(Value)
+			if Value < MIN_VALUE_DISPLAY or Value > MAX_VALUE_DISPLAY then
+				continue
+			end
 
-            Item.Parent = ListFrame
-        end
+			Future.Try(function()
+				Username = game.Players:GetNameFromUserIdAsync(UserId)
+			end)
+
+			if Username == "EpicBlacklistedUser" then
+				continue -- Skip blacklisted users
+			end
+
+			if i == 1 then
+				Color = Color3.fromRGB(255, 215, 0)
+			elseif i == 2 then
+				Color = Color3.fromRGB(192, 192, 192)
+			elseif i == 3 then
+				Color = Color3.fromRGB(205, 127, 50)
+			end
+
+			local Item = LeaderboardTemplate:Clone()
+
+			Item.Name = Username
+			Item.LayoutOrder = i
+			Item.Rank.TextColor3 = Color
+			Item.Rank.Text = "#" .. tostring(i)
+			Item.Username.Text = Username
+			Item.Amount.Text = tostring(Value)
+
+			Item.Parent = ListFrame
+		end
 	end))
 end
 
@@ -174,14 +174,14 @@ game:BindToClose(function()
 		return
 	end
 
-	local Datastores : {[string] : OrderedDataStore} = {}
+	local Datastores: { [string]: OrderedDataStore } = {}
 
 	for index, self in Components do
 		local Datastore = self.OrderedDatastore
-        local StoreItem = self.StoreItem
-        if not StoreItem then 
-            continue
-        end
+		local StoreItem = self.StoreItem
+		if not StoreItem then
+			continue
+		end
 
 		if not Datastore then
 			continue
@@ -193,18 +193,18 @@ game:BindToClose(function()
 	local Count = getLenght(PlayerService:GetAllPlayers())
 
 	for Player, PlayerData in PlayerService:GetAllPlayers() do
-        local Data = PlayerData.Replica.Data
+		local Data = PlayerData.Replica.Data
 
 		Future.Try(function()
-            for i, v in Datastores do
-                v:SetAsync(tostring(Player.UserId), Data[i])
-            end
-        end):After(function()
+			for i, v in Datastores do
+				v:SetAsync(tostring(Player.UserId), Data[i])
+			end
+		end):After(function()
 			Count -= 1
 		end)
 
 		while Count > 0 do
-            task.wait()
+			task.wait()
 		end
 	end
 end)
