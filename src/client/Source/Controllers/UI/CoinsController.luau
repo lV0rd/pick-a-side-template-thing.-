@@ -45,7 +45,7 @@ function Controller.Start()
 			end
 
 			Swing:set(true)
-			task.delay(.1, function()
+			task.delay(0.1, function()
 				Swing:set(false)
 			end)
 		end
@@ -56,9 +56,13 @@ function Controller.Start()
 	})
 
 	scope:Hydrate(CoinsButton)({
-		Rotation = scope:Spring(scope:Computed(function(use)
-			return use(Swing) and -10 or 0
-		end), 50, .4),
+		Rotation = scope:Spring(
+			scope:Computed(function(use)
+				return use(Swing) and -10 or 0
+			end),
+			50,
+			0.4
+		),
 
 		[OnEvent("MouseButton1Click")] = function()
 			GuiController:Toggle(ShopMenu)

@@ -7,16 +7,7 @@ local Controller = {
 	Name = script.Name,
 }
 
-local Source = ReplicatedStorage:WaitForChild("Source")
-local Controllers = Source:WaitForChild("Controllers")
-local Modules = Source:WaitForChild("Modules")
-
-local ExternalDebug = require(ReplicatedStorage.Packages.Fusion.ExternalDebug)
-local nameOf = require(ReplicatedStorage.Packages.Fusion.Utility.nameOf)
 local Swords = require(ReplicatedStorage.Shared.Data.Swords)
-local DataController = require(Controllers.DataController)
-local ReplicaClient = require(Modules.ReplicaClient)
-
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -37,7 +28,6 @@ local Fusion = require(Packages.Fusion)
 local scope = Fusion.scoped(Fusion)
 local peek = Fusion.peek
 local OnEvent = Fusion.OnEvent
-local Children = Fusion.Children
 
 function min(t, mapper)
 	local bk, bv, bn
@@ -59,25 +49,23 @@ local Closest = scope:Value("null")
 local Debounce = false
 
 function Controller.Start()
-	local GuiController = require(Controllers.GuiController)
-	local ReplicaData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
-    local Data = ReplicaData.Data
-
 	local function call(crate)
-        if Debounce then
-            return
-        end
+		if Debounce then
+			return
+		end
 
-        Debounce = true
-        task.delay(.5, function() Debounce = false end)
+		Debounce = true
+		task.delay(0.5, function()
+			Debounce = false
+		end)
 
 		local success, result = CrateFunction:Call(crate):Await()
 		if not success then
 			return
 		end
 
-        print(result)
-        
+		print(result)
+
 		--init animation or sum idk
 	end
 

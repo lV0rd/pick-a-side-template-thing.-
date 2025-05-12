@@ -83,7 +83,7 @@ function Controller.Start()
 
 				return UDim2.fromScale(1, 1)
 			end),
-			TweenInfo.new(.05)
+			TweenInfo.new(0.05)
 		),
 	})
 

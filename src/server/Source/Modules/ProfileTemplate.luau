@@ -1,26 +1,26 @@
 return {
-    Wins = 0,
-    Kills = 0,
-    Coins = 1000000,
-    Spins = 7,
+	Wins = 0,
+	Kills = 0,
+	Coins = 1000000,
+	Spins = 7,
 
-    FirstLogin = 0,
+	FirstLogin = 0,
 
-    PlayTime = 0,
+	PlayTime = 0,
 
-    Emotes = {["Default"] = true},
-    Swords = {["ClassicSword"] = true},
+	Emotes = { ["Default"] = true },
+	Swords = { ["ClassicSword"] = true },
 
-    EquippedSword = "ClassicSword",
-    EquippedEmote = "Default",
+	EquippedSword = "ClassicSword",
+	EquippedEmote = "Default",
 
-    Codes = {},
+	Codes = {},
 
-    Gamepasses = {},
-    PurchaseIdCache = {},
+	Gamepasses = {},
+	PurchaseIdCache = {},
 
-    Followed = false,
+	Followed = false,
 
-    DayStreak = 1,
+	DayStreak = 1,
 	LastDay = 0,
 }

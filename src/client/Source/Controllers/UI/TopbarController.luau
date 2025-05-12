@@ -157,7 +157,7 @@ function Controller.Start()
 							BackgroundColor3 = Color3.new(0, 0, 0),
 							BackgroundTransparency = scope:Computed(function(use)
 								if ind < use(DayStreak) then
-									return .5
+									return 0.5
 								else
 									return 1
 								end

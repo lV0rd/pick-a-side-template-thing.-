@@ -57,10 +57,6 @@ local Service = {
 		Started = false,
 		Players = {} :: { [Player]: PlayerService.PlayerData },
 
-		IntermissionTime = 0,
-		VotingTime = 0,
-		RoundTime = 0,
-
 		Thread = {},
 
 		BlueOption = nil,
@@ -97,7 +93,7 @@ function StartIntermission()
 		return
 	end
 
-	GameData.IntermissionTime = Settings.INTERMISSION_TIME
+	local IntermissionTime = Settings.INTERMISSION_TIME
 
 	GameDataReplica:Set({ "Status" }, "Intermission")
 	GameDataReplica:Set({ "Visible" }, true)
@@ -105,9 +101,9 @@ function StartIntermission()
 
 	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 
-	while GameData.IntermissionTime > 0 do
-		GameData.IntermissionTime -= 1
-		GameData.Status:set("Intermission: " .. GameData.IntermissionTime .. " seconds left")
+	while IntermissionTime > 0 do
+		IntermissionTime -= 1
+		GameData.Status:set("Intermission: " .. IntermissionTime .. " seconds left")
 		task.wait(1)
 
 		if GetQueLenght() < Settings.REQUIRED_PLAYERS then
@@ -331,9 +327,6 @@ function StartGame()
 			player.Team = Teams.Lobby
 		end
 	end
-
-	
-	
 
 	if option_a_players > 0 and option_b_players > 0 then
 		GameDataReplica:Set({ "Timer" }, workspace:GetServerTimeNow())

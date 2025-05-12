@@ -108,7 +108,7 @@ function Controller.Start()
 						scope:New("TextLabel")({
 							Name = "SwordName",
 							Text = SwordData.Name,
-							Size = UDim2.fromScale(1, .6),
+							Size = UDim2.fromScale(1, 0.6),
 							BackgroundTransparency = 1,
 							TextScaled = true,
 						}),
@@ -125,7 +125,7 @@ function Controller.Start()
 
 								if use(Equipped) == ind then
 									return "Equipped"
-								elseif Index == true then 
+								elseif Index == true then
 									return "Equip"
 								else
 									return "Not Owned"
