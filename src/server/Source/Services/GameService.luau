@@ -98,15 +98,17 @@ function StartIntermission()
 	end
 
 	GameData.IntermissionTime = Settings.INTERMISSION_TIME
+
 	GameDataReplica:Set({ "Status" }, "Intermission")
 	GameDataReplica:Set({ "Visible" }, true)
 	GameDataReplica:Set({ "BarVisible" }, true)
 
+	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
+
 	while GameData.IntermissionTime > 0 do
-		task.wait(1)
-		GameDataReplica:Set({ "Time" }, GameData.IntermissionTime)
-		GameData.Status:set("Intermission: " .. GameData.IntermissionTime .. " seconds left")
 		GameData.IntermissionTime -= 1
+		GameData.Status:set("Intermission: " .. GameData.IntermissionTime .. " seconds left")
+		task.wait(1)
 
 		if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 			task.wait(1)
@@ -129,6 +131,7 @@ function StartGame()
 
 	GameData.Started = true
 	GameDataReplica:Set({ "Visible" }, false)
+	GameDataReplica:Set({ "Time" }, 0)
 
 	local BrainrotsLenght = #Brainrots
 
@@ -246,9 +249,13 @@ function StartGame()
 	GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
 	GameDataReplica:Set({ "Visible" }, true)
 
-	for i = Settings.VOTING_TIME, 0, -1 do
-		GameDataReplica:Set({ "Time" }, i)
-		GameData.Status:set("Select a meme! " .. i .. " seconds left")
+	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
+
+	local VotingTime = Settings.VOTING_TIME
+
+	while VotingTime > 0 do
+		VotingTime -= 1
+		GameData.Status:set("Select a meme! " .. VotingTime .. " seconds left")
 		task.wait(1)
 	end
 
@@ -325,15 +332,20 @@ function StartGame()
 		end
 	end
 
+	
+	
+
 	if option_a_players > 0 and option_b_players > 0 then
-		for i = Settings.FIGHTING_TIME, 0, -1 do
-			-- end game once other team is eliminated
+		GameDataReplica:Set({ "Timer" }, workspace:GetServerTimeNow())
+
+		local FightingTime = Settings.FIGHTING_TIME
+
+		while FightingTime > 0 do
 			if #BlueTeam:GetPlayers() == 0 or #RedTeam:GetPlayers() == 0 then
 				break
 			end
-
-			GameDataReplica:Set({ "Timer" }, i)
-			GameData.Status:set("Fight! " .. i .. " seconds left")
+			FightingTime -= 1
+			GameData.Status:set("Fight! " .. FightingTime .. " seconds left")
 			task.wait(1)
 		end
 	end
@@ -413,14 +425,14 @@ function StartGame()
 		task.spawn(player.LoadCharacter, player)
 	end
 
-	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
+	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Visible = false
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
 
 	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
 
-	table.clear(votes.blue)
 	table.clear(votes.red)
+	table.clear(votes.blue)
 
 	StartIntermission()
 end

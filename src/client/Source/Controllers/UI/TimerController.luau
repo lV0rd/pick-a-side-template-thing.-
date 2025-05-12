@@ -1,6 +1,6 @@
-local FriendService = game:GetService("FriendService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Controller = {
 	Name = script.Name,
 }
@@ -29,54 +29,81 @@ local Settings = require(Shared.Data.Settings)
 
 local Fusion = require(Packages.Fusion)
 local scope = Fusion.scoped(Fusion)
+local peek = Fusion.peek
 
 local Status = scope:Value("Intermission")
-local Time = scope:Value(0)
+local CalculatedTime = scope:Value(0)
 local Visible = scope:Value(false)
-local BarVisible = scope:Value(false)
+local BarVisible = scope:Value(true)
+
+local CurrentStatusTime
 
 function Controller.Start()
-    local GameData = DataController:GetGameDataAsync() :: ReplicaClient.Replica
-    GameData:OnSet({"Status"}, function()
-        Status:set(GameData.Data.Status)
-    end)
-    GameData:OnSet({"Time"}, function()
-        Time:set(GameData.Data.Time)
-    end)
-    GameData:OnSet({"Visible"}, function()
-        Visible:set(GameData.Data.Visible)
-    end)
-    GameData:OnSet({"BarVisible"}, function()
-        BarVisible:set(GameData.Data.BarVisible)
-    end)
+	local GameData = DataController:GetGameDataAsync() :: ReplicaClient.Replica
 
-    scope:Hydrate(StatusText) {
-        Text = Status
-    }
+	local Time = 0
 
-    scope:Hydrate(BarFrame) {
-        Size = scope:Spring(scope:Computed(function(use)
-            if string.match(use(Status), "Intermission") then
-                return UDim2.fromScale(use(Time)/Settings.INTERMISSION_TIME, 1)  
-            elseif string.match(use(Status), "Vote") then
-                return UDim2.fromScale(use(Time)/Settings.VOTING_TIME, 1)  
-            elseif string.match(use(Status), "Fight") then
-                return UDim2.fromScale(use(Time)/Settings.FIGHTING_TIME, 1)    
-            end
-            
-            return UDim2.fromScale(0, 1)
-        end), 40, .5)
-    }
+	GameData:OnSet({ "Status" }, function()
+		Status:set(GameData.Data.Status)
+		if string.match(peek(Status), "Intermission") then
+			CurrentStatusTime = Settings.INTERMISSION_TIME
+		elseif string.match(peek(Status), "Vote") then
+			CurrentStatusTime = Settings.VOTING_TIME
+		elseif string.match(peek(Status), "Fight") then
+			CurrentStatusTime = Settings.FIGHTING_TIME
+		else
+			CurrentStatusTime = nil
+		end
 
-    
+		BarFrame.Size = UDim2.fromScale(1, 1)
+	end)
 
-    scope:Hydrate(TimerFrame) {
-        Visible = BarVisible
-    }
+	GameData:OnSet({ "Time" }, function()
+		Time = GameData.Data.Time
+	end)
 
-    scope:Hydrate(Timer) {
-        Visible = Visible
-    }
+	GameData:OnSet({ "Visible" }, function()
+		Visible:set(GameData.Data.Visible)
+	end)
+
+	GameData:OnSet({ "BarVisible" }, function()
+		BarVisible:set(GameData.Data.BarVisible)
+	end)
+
+	scope:Hydrate(StatusText)({
+		Text = Status,
+	})
+
+	scope:Hydrate(BarFrame)({
+		Size = scope:Tween(
+			scope:Computed(function(use)
+				if use(CalculatedTime) >= 0 then
+					return UDim2.fromScale(use(CalculatedTime), 1)
+				end
+
+				return UDim2.fromScale(1, 1)
+			end),
+			TweenInfo.new(.05)
+		),
+	})
+
+	scope:Hydrate(TimerFrame)({
+		Visible = BarVisible,
+	})
+
+	scope:Hydrate(Timer)({
+		Visible = Visible,
+	})
+
+	RunService.PreRender:Connect(function()
+		if CurrentStatusTime and Time > 0 then
+			local currentTime = workspace:GetServerTimeNow()
+			local elapsed = currentTime - Time
+			CalculatedTime:set(math.clamp(elapsed / CurrentStatusTime, 0, 1))
+		else
+			CalculatedTime:set(-1)
+		end
+	end)
 end
 
 return Controller

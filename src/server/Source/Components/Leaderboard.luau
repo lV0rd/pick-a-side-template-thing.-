@@ -128,8 +128,8 @@ function module:init()
 			end
 
 			Future.Try(function()
-				Username = game.Players:GetNameFromUserIdAsync(UserId)
-			end)
+				Username = game.Players:GetNameFromUserIdAsync(tonumber(UserId))
+			end):Await()
 
 			if Username == "EpicBlacklistedUser" then
 				continue -- Skip blacklisted users

@@ -150,7 +150,7 @@ function Controller.Start()
 	local Opened = false
 
 	RunService.PostSimulation:Connect(function()
-		if tick() - Debounce < 0.5 then
+		if tick() - Debounce < 0.2 then
 			return
 		end
 

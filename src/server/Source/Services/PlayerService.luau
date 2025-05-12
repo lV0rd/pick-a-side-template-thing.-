@@ -138,6 +138,21 @@ function Service:PlayerJoin(Player: Player)
 	end)
 
 	task.spawn(function()
+		for i, v in Swords do
+			if Data.Replica.Data.Swords[i] then
+				continue
+			end
+
+			if v.Gamepass then
+				if Data.Replica.Data.Gamepasses[v.ID] then
+					Data.Replica:Set({ "Swords", i }, true)
+				end
+			end
+			Data.Replica:Set({ "Swords", i }, false)
+		end
+	end)
+
+	task.spawn(function()
 		local Replica = Data.Replica
 		local Data = Replica.Data
 		local Gamepasses = Data.Gamepasses

@@ -7,6 +7,7 @@ local Service = {
 
 local Shared = ReplicatedStorage.Shared
 local Swords = require(Shared.Data.Swords)
+
 local Events = Shared.Events
 local Attack = require(Events.Attack):Server()
 

@@ -20,4 +20,7 @@ return {
     PurchaseIdCache = {},
 
     Followed = false,
+
+    DayStreak = 1,
+	LastDay = 0,
 }

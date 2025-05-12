@@ -11,16 +11,21 @@ local Functions = Shared.Functions
 
 local Notify = require(Events.Notify):Server()
 
+local New = require(ReplicatedStorage.Packages.Fusion.Instances.New)
 local IDs = require(Shared.Data.IDs)
 local Rewards = require(Shared.Data.Rewards)
 
 local Spin = require(Functions.Spin)
 local Follow = require(Functions.Follow)
 local Gifts = require(Functions.Gifts)
+local Daily = require(Functions.Daily)
 
 local Service = {
 	Name = script.Name,
 }
+
+local HOURS_24 = 60 * 60 * 24
+local HOURS_48 = HOURS_24 * 2
 
 local function pickWeighted(array: { any })
 	local weight = 0
@@ -40,6 +45,19 @@ local function pickWeighted(array: { any })
 	end
 
 	return nil
+end
+
+function getCurrentDay(Data)
+	local CurrentDay = Data.DayStreak
+
+	local now = workspace:GetServerTimeNow()
+	local timeDifference = now - Data.LastDay
+
+	if timeDifference >= HOURS_48 then
+		CurrentDay = 1
+	end
+
+	return CurrentDay
 end
 
 function Service.Start()
@@ -153,6 +171,37 @@ function Service.Start()
 		Notify:Fire(Player, "Claimed gift! Thanks for playing!")
 		PlayerData.LocalData:Set({ "Gifts", Name }, true)
 		Info.Reward(Player, PlayerData)
+
+		return true
+	end)
+
+	Daily:SetCallback(function(Player: Player)
+		local PlayerData = PlayerService:GetPlayer(Player)
+		if not PlayerData then
+			return
+		end
+
+		local Replica = PlayerData.Replica
+		local Data = Replica.Data
+
+		local now = workspace:GetServerTimeNow()
+		local timeDifference = now - Data.LastDay
+
+		if timeDifference < HOURS_24 then
+			print("Suspiscious, tried to claim too soon.")
+			return false
+		end
+
+		local RewardDay = getCurrentDay(Data)
+		local NewDay = RewardDay + 1
+
+		if NewDay > #Rewards.Daily then
+			NewDay = 1
+		end
+
+		Rewards.Daily[RewardDay].Function(Player)
+		Replica:Set({ "LastDay" }, now)
+		Replica:Set({ "DayStreak" }, NewDay)
 
 		return true
 	end)
