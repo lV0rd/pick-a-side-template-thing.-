@@ -1,4 +1,3 @@
-local CollaboratorsService = game:GetService("CollaboratorsService")
 local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
