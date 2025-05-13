@@ -17,6 +17,7 @@ local Functions = Shared.Functions
 local LocalPlayer = Players.LocalPlayer
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local RootGui = PlayerGui.RootGui
 
 local BillboardTemplate = Assets.Gui.CrateBillboard :: BillboardGui
 local IconTemplate = Assets.Gui.CrateTemplate :: Frame
@@ -73,6 +74,7 @@ function Controller.Start()
 		local Indexes = require(Crate:FindFirstChild("Indexes"))
 
 		local NewBillboard = BillboardTemplate:Clone()
+		NewBillboard.ResetOnSpawn = false
 
 		scope:Hydrate(NewBillboard)({
 			Enabled = scope:Computed(function(use)
@@ -113,7 +115,7 @@ function Controller.Start()
 
 		NewBillboard.Name = Crate.Name
 		NewBillboard.Adornee = Crate
-		NewBillboard.Parent = PlayerGui.Billboards
+		NewBillboard.Parent = RootGui.Billboards
 		Crates[Crate] = NewBillboard
 	end
 
@@ -147,9 +149,11 @@ function Controller.Start()
 	RunService.PostSimulation:Connect(function()
 		local Filtered = {}
 		local Character = LocalPlayer.Character
-		if Character and Character.HumanoidRootPart then
+		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+
+		if Character and HumanoidRootPart then
 			for Crate, Billboard in Crates do
-				local Distance = (Character.HumanoidRootPart.Position - Crate:GetPivot().Position).Magnitude
+				local Distance = (HumanoidRootPart.Position - Crate:GetPivot().Position).Magnitude
 				if Distance <= 15 then
 					table.insert(Filtered, Billboard)
 				end
@@ -161,7 +165,7 @@ function Controller.Start()
 			end
 
 			local closest = min(Filtered, function(i, v)
-				return (LocalPlayer.Character.HumanoidRootPart.Position - v.Adornee:GetPivot().Position).Magnitude <= 15
+				return (HumanoidRootPart.Position - v.Adornee:GetPivot().Position).Magnitude <= 15
 			end)
 
 			Closest:set(Filtered[closest].Name)

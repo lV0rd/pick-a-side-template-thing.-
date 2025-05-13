@@ -126,8 +126,8 @@ function StartGame()
 	local GameData = Service.GameData
 
 	GameData.Started = true
-	GameDataReplica:Set({ "Visible" }, false)
 	GameDataReplica:Set({ "Time" }, 0)
+	GameDataReplica:Set({ "Visible" }, false)
 
 	local BrainrotsLenght = #Brainrots
 
@@ -233,19 +233,13 @@ function StartGame()
 						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
 					end
 				end
-				--character.HumanoidRootPart.CFrame = CFrame.new(
-				--	hit.Position.X + math.random(-3, 3),
-				--	character:GetPivot().Position.Y,
-				--	hit.Position.Z + math.random(-3, 3)
-				--)
 			end
 		end
 	end)
 
+	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 	GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
 	GameDataReplica:Set({ "Visible" }, true)
-
-	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 
 	local VotingTime = Settings.VOTING_TIME
 
@@ -329,7 +323,7 @@ function StartGame()
 	end
 
 	if option_a_players > 0 and option_b_players > 0 then
-		GameDataReplica:Set({ "Timer" }, workspace:GetServerTimeNow())
+		GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 
 		local FightingTime = Settings.FIGHTING_TIME
 
