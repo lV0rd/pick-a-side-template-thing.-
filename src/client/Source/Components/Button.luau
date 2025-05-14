@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
---local SFX = SoundService.SFX
+local Sounds = SoundService.UI
 
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
@@ -41,19 +42,17 @@ function module:init()
 	self.scope:Hydrate(self.Instance) {
 		[OnEvent "MouseEnter"] = function()
 			Scale:set(HoverScale)
-			--spr.target(UIScale, Damp, Speed, {Scale = HoverScale})
+			Sounds.Hover:Play()
 		end,
 		[OnEvent "MouseLeave"] = function()
 			Scale:set(NormalScale)			
-			--spr.target(UIScale, Damp, Speed, {Scale = NormalScale})
 		end,
 		[OnEvent "MouseButton1Down"] = function()
 			Scale:set(ClickScale)
-			--spr.target(UIScale, Damp, Speed, {Scale = ClickScale})
+			Sounds.Click:Play()
 		end,
 		[OnEvent "MouseButton1Up"] = function()
 			Scale:set(NormalScale)
-			--spr.target(UIScale, Damp, Speed, {Scale = NormalScale})
 		end,
 	}
 end

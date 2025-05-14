@@ -2,6 +2,7 @@ local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 local Controller = {
 	Name = script.Name,
 
@@ -9,6 +10,8 @@ local Controller = {
 		CurrentOpenMenu = nil,
 	},
 }
+
+local Sounds = SoundService.UI
 
 local Camera = workspace.CurrentCamera
 local Blur = Lighting:FindFirstChild("Blur") or Instance.new("BlurEffect")
@@ -83,13 +86,12 @@ function Controller:Notify(Message, WaitTime)
 	New.Text = Message
 	New.Size = UDim2.fromScale(1, 0)
 	New.Parent = Notifications
+	Sounds.Notification:Play()
 
 	Spr.target(New, 0.5, 5, { Size = OldSize })
 	Spr.completed(New, function()
 		Debris:AddItem(New, WaitTime or 5)
 	end)
-
-	--sound
 end
 
 function Controller.Start()

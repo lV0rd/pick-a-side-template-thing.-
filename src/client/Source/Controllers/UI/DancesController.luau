@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Events = Shared:WaitForChild("Events")
 
+local Future = require(ReplicatedStorage.Packages.Future)
 local Dances = require(Shared.Data.Dances)
 
 local DataController = require(Source.Controllers.DataController)
@@ -39,6 +40,8 @@ local Equip = require(Events.Equip):Client()
 local scope = Fusion.scoped(Fusion)
 local OnEvent = Fusion.OnEvent
 local Children = Fusion.Children
+
+local Cache = {}
 
 function Controller.Start()
 	local GuiController = require(Source.Controllers.GuiController)
@@ -96,11 +99,10 @@ function Controller.Start()
 			scope:ForPairs(Dances, function(use, scope, ind, DanceData)
 				return scope:New("TextButton")({
 					Parent = DanceMenu.Elements,
-					Name = DanceData.Name,
 					Size = UDim2.fromScale(0.2, 0.15),
 					Position = UDim2.fromScale(0, 0),
 					BackgroundColor3 = Color3.fromRGB(32, 212, 101),
-					Text = DanceData.Name,
+					Text = "",
 
 					LayoutOrder = DanceData.Order,
 
@@ -110,7 +112,6 @@ function Controller.Start()
 						}),
 
 						scope:New("TextLabel")({
-							Name = "DanceName",
 							Text = DanceData.Name,
 							Size = UDim2.fromScale(1, 1),
 							BackgroundTransparency = 1,
@@ -118,7 +119,6 @@ function Controller.Start()
 						}),
 
 						scope:New("TextLabel")({
-							Name = "DancePrice",
 							TextScaled = true,
 							Text = scope:Computed(function(use)
 								local Index = use(Values[DanceData.Name])
@@ -133,11 +133,19 @@ function Controller.Start()
 									if Index then
 										return "Equip"
 									else
-										local Success, Info = pcall(function()
-											return MarketplaceService:GetProductInfo(tonumber(DanceData.ID))
-										end)
+										local Info
 
-										if Success then
+										if Cache[Index] then
+											Info = Cache[Index]
+										else
+											Cache[Index] = Future.Try(function()
+												return MarketplaceService:GetProductInfo(tonumber(DanceData.ID))
+											end):Await()
+
+											Info = Cache[Index]
+										end
+									
+										if Info then
 											return "Buy " .. Info.PriceInRobux .. "\u{E002}"
 										else
 											return "Buy"

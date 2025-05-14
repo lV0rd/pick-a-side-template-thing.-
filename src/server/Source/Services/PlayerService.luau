@@ -1,8 +1,11 @@
 local MarketplaceService = game:GetService("MarketplaceService")
+local PlacesService = game:GetService("PlacesService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
+local TouchInputService = game:GetService("TouchInputService")
 
+local Future = require(ReplicatedStorage.Packages.Future)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Timer = require(ReplicatedStorage.Packages.Timer)
 local IDs = require(ReplicatedStorage.Shared.Data.IDs)
@@ -45,6 +48,16 @@ export type PlayerData = {
 	Replica: ReplicaServer.Replica,
 	LocalData: ReplicaServer.Replica,
 }
+
+function updateHealth(Character)
+	local Player = Players:GetPlayerFromCharacter(Character)
+	local PlayerData = Service:GetPlayer(Player)
+
+	local LocalData = PlayerData.LocalData.Data
+	local Humanoid = Character:FindFirstChild("Humanoid")
+
+	Humanoid.Health *= LocalData.HealthMultiplier
+end
 
 function Service:GetAllPlayers(): { [Player]: PlayerData }
 	return self.Players
@@ -113,6 +126,12 @@ function Service:PlayerJoin(Player: Player)
 			Data = {
 				Gifts = {},
 				SpinHistory = {},
+
+				WinsMultiplier = 1,
+				CoinsMultiplier = 1,
+				KillsMultipler = 1,
+				HealthMultiplier = 1,
+				SpinDebounce = true,
 			},
 		}),
 	}
@@ -154,15 +173,27 @@ function Service:PlayerJoin(Player: Player)
 
 	task.spawn(function()
 		local Replica = Data.Replica
-		local Data = Replica.Data
-		local Gamepasses = Data.Gamepasses
+		local ReplicaData = Replica.Data
+		local Gamepasses = ReplicaData.Gamepasses
 		for ID, Gamepass in IDs.Gamepasses do
-			local Owns = MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(ID))
+			local Success, Owns = Future.Try(function()
+				return MarketplaceService:UserOwnsGamePassAsync(Player.UserId, tonumber(ID))
+			end):Await()
+
+			if not Success then
+				Owns = false
+			end
 
 			local CurrentState = Gamepasses[ID]
 
-			if Owns and not CurrentState then
-				Replica:Set({ "Gamepasses", ID }, true)
+			if Owns then
+				if not CurrentState then
+					Replica:Set({ "Gamepasses", ID }, true)
+				end
+
+				if Gamepass.OnJoin then
+					Gamepass.Callback(Player, Data)
+				end
 			elseif CurrentState == nil then
 				Replica:Set({ "Gamepasses", ID }, false)
 			end
@@ -181,6 +212,12 @@ function Service:PlayerJoin(Player: Player)
 	if Data.Replica.Data.FirstLogin == 0 then
 		Data.Replica:Set({ "FirstLogin" }, workspace:GetServerTimeNow())
 	end
+
+	if Player.Character then
+		updateHealth(Player.Character)
+	end
+
+	Connections.Health = Player.CharacterAdded:Connect(updateHealth)
 
 	print(Profile)
 	self.PlayerJoinSignal:Fire(Player)

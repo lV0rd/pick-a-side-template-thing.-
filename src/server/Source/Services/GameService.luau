@@ -379,8 +379,8 @@ function StartGame()
 				EquippedEmote = "Default"
 			end
 
-			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + 1)
-			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500)
+			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + 1 * PlayerData.LocalData.Data.WinsMultiplier)
+			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500 * PlayerData.LocalData.Data.CoinsMultiplier)
 
 			print(PlayerData.Replica)
 

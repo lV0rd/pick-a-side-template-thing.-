@@ -10,6 +10,7 @@ local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Source = ReplicatedStorage:WaitForChild("Source")
 
+local Data = require(ReplicatedStorage.Source.Events.Data)
 local ReplicaClient = require(Source.Modules.ReplicaClient)
 
 local LocalPlayer = Players.LocalPlayer
@@ -69,6 +70,7 @@ function Controller.Start()
 	local DataController = require(Source.Controllers.DataController)
 
 	local ReplicateData = DataController:GetPlayerDataAsync() :: ReplicaClient.Replica
+	local LocalData = DataController:GetLocalDataAsync() :: ReplicaClient.Replica
 
 	local Spins = scope:Value(ReplicateData.Data.Spins)
 
@@ -123,10 +125,14 @@ function Controller.Start()
 			local Spins = math.random(8, 10) * 360
 			Angle += Spins
 
-			local Tween = TweenService:Create(Wheel, TweenInfo.new(6, Enum.EasingStyle.Quint), { Rotation = Angle })
+			if LocalData.Data.SpinDebounce then
+				local Tween = TweenService:Create(Wheel, TweenInfo.new(6, Enum.EasingStyle.Quint), { Rotation = Angle })
 
-			Tween:Play()
-			Tween.Completed:Wait()
+				Tween:Play()
+				Tween.Completed:Wait()
+			else
+				Wheel.Rotation = Angle
+			end
 
 			GuiController:Notify(
 				"You got : "
@@ -136,7 +142,7 @@ function Controller.Start()
 					.. "%!"
 			)
 
-			task.wait(2)
+			task.wait(if LocalData.Data.SpinDebounce then 2 else .1)
 
 			Wheel.Rotation = 0
 
