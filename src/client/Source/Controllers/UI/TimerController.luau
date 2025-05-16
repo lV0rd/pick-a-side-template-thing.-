@@ -75,16 +75,13 @@ function Controller.Start()
 	})
 
 	scope:Hydrate(BarFrame)({
-		Size = scope:Tween(
-			scope:Computed(function(use)
-				if use(CalculatedTime) >= 0 then
-					return UDim2.fromScale(use(CalculatedTime), 1)
-				end
+		Size = scope:Computed(function(use)
+			if use(CalculatedTime) >= 0 then
+				return UDim2.fromScale(use(CalculatedTime), 1)
+			end
 
-				return UDim2.fromScale(1, 1)
-			end),
-			TweenInfo.new(0.05)
-		),
+			return UDim2.fromScale(1, 1)
+		end),
 	})
 
 	scope:Hydrate(TimerFrame)({

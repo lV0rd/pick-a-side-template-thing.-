@@ -22,7 +22,7 @@ return {
         Instance = ReplicatedStorage.Assets.Animations.Special,
         Currency = "Robux",
         Name = "Special",
-        ID = "1000",
+        ID = 1221624083,
 
         Order = 3
     },

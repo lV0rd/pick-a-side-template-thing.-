@@ -14,6 +14,7 @@ local Functions = Shared.Functions
 local Controllers = Source.Controllers
 local Modules = Source.Modules
 
+local Child = require(ReplicatedStorage.Packages.Fusion.Instances.Child)
 local peek = require(ReplicatedStorage.Packages.Fusion.State.peek)
 local DataController = require(Controllers.DataController)
 local ReplicaClient = require(Modules.ReplicaClient)
@@ -135,6 +136,12 @@ function Controller.Start()
 							CornerRadius = UDim.new(0.2, 0),
 						}),
 
+						scope:New("UIStroke"){
+							Thickness = 3,
+							Color = Color3.fromRGB(38,38,38),
+							ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+						},
+
 						scope:New("ImageLabel")({
 							Name = "DanceName",
 							Image = RewardData.Image,
@@ -144,11 +151,20 @@ function Controller.Start()
 
 						scope:New("TextLabel")({
 							Name = "Title",
+							Font = Enum.Font.FredokaOne,
 							TextScaled = true,
 							Text = RewardData.Title,
+							TextColor3 = Color3.new(1,1,1),
 							Size = UDim2.fromScale(1, 0.3),
 							Position = UDim2.fromScale(0, 0.7),
 							BackgroundTransparency = 1,
+
+							[Children] = {
+								scope:New "UIStroke" {
+									Thickness = 2,
+									ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+								}
+							}
 						}),
 
 						scope:New("Frame")({

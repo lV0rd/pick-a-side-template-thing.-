@@ -26,6 +26,7 @@ local Events = Shared.Events
 --Remote events with Red
 
 local Invisible = require(Events.Invisible):Server()
+local Notify = require(Events.Notify):Server()
 
 local Settings = require(Shared.Data.Settings)
 local Brainrots = require(Shared.Data.Brainrots)
@@ -429,11 +430,18 @@ function StartGame()
 				EquippedEmote = "Default"
 			end
 
+			local CoinsAwardedAmount = 500 * PlayerData.LocalData.Data.CoinsMultiplier
+			local WinsAwaredAmount = 1 * PlayerData.LocalData.Data.WinsMultiplier
+
 			--Award players with coins and wins
-			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + 1 * PlayerData.LocalData.Data.WinsMultiplier)
-			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500 * PlayerData.LocalData.Data.CoinsMultiplier)
+			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + WinsAwaredAmount)
+			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + CoinsAwardedAmount)
 
 			player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
+
+			--Notify player rewards
+			Notify:Fire(player, `<font color="#00FF00">+{CoinsAwardedAmount} Coins!</font>`)
+			Notify:Fire(player, `<font color="#00FF00">+{WinsAwaredAmount} Wins!</font>`)
 
 			--Play victory dance on winners
 			local character = player.Character

@@ -86,7 +86,7 @@ function Service.Start()
 
 		--If player does not have enough coins, dont continue
         if Data.Coins < CrateInstance:GetAttribute("Price") then
-            Notify:Fire(Player, "Can't afford!")
+            Notify:Fire(Player, '<font color="#FF0000">Can\'t afford!</font>')
             return
         end
 
@@ -109,12 +109,14 @@ function Service.Start()
 			Debounces[Player] = nil
 		end)
 
+		local Price = CrateInstance:GetAttribute("Price") or 1200
+
 		--Give sword to player, and remove 1200 coins
 		Replica:Set({ "Swords", PickedSword }, true)
-		Replica:Set({ "Coins" }, Data.Coins - 1200)
+		Replica:Set({ "Coins" }, Data.Coins - Price)
 
 		--Notify player (makes a gui pop up)
-		Notify:Fire(Player, "You have obtained the sword: " .. SwordData.Name .. "!")
+		Notify:Fire(Player, `<font color="#FFFF00">You have obtained the sword: '{SwordData.Name}'!</font>`)
 
         return SwordData
 	end)
@@ -169,7 +171,8 @@ function Service.Start()
 				Replica:Set({ "Coins" }, Data.Coins - DancaData.Price)
 
 				--Notify player
-				Notify:Fire(Player, "Successfully bought " .. DancaData.Name .. "!")
+				Notify:Fire(Player, `<font color="#FFFF00">Successfully bought '{DancaData.Name}'!</font>`)
+				
 			end
 		end
 	end)
@@ -201,7 +204,7 @@ function Service.Start()
 
 				--Set equipped sword to item and notify player
 				Replica:Set({ "EquippedSword" }, Item)
-				Notify:Fire(Player, "Equipped " .. Item)
+				Notify:Fire(Player, `<font color="#FFFF00">Equipped '{Item}'!</font>`)
 			end
 		elseif Type == "Emote" then
 			--If item is not owned, dont continue
@@ -214,7 +217,7 @@ function Service.Start()
 
 				--Set equipped emote to item and notify player
 				Replica:Set({ "EquippedEmote" }, Item)
-				Notify:Fire(Player, "Equipped " .. Item)
+				Notify:Fire(Player, `<font color="#FFFF00">Equipped '{Item}'!</font>`)
 			end
 		end
 	end)

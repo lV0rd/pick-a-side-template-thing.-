@@ -113,6 +113,7 @@ function Controller.Start()
 			end,
 		})
 
+		NewBillboard.Main.Icon.Price.Text = Crate:GetAttribute("Price")
 		NewBillboard.Name = Crate.Name
 		NewBillboard.Adornee = Crate
 		NewBillboard.Parent = RootGui.Billboards
@@ -134,7 +135,7 @@ function Controller.Start()
 				return
 			end
 
-			local Instance = PlayerGui.Billboards:FindFirstChild(peek(Closest)).Adornee
+			local Instance = RootGui.Billboards:FindFirstChild(peek(Closest)).Adornee
 
 			if not Instance then
 				return

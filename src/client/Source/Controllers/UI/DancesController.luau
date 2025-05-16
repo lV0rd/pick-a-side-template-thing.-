@@ -138,15 +138,15 @@ function Controller.Start()
 										if Cache[Index] then
 											Info = Cache[Index]
 										else
-											Cache[Index] = Future.Try(function()
-												return MarketplaceService:GetProductInfo(tonumber(DanceData.ID))
+											Cache[Index] = Future.new(function()
+												return MarketplaceService:GetProductInfo(DanceData.ID, Enum.InfoType.GamePass)
 											end):Await()
 
 											Info = Cache[Index]
 										end
 									
 										if Info then
-											return "Buy " .. Info.PriceInRobux .. "\u{E002}"
+											return "Buy " ..( Info.PriceInRobux or "0" ).. "\u{E002}"
 										else
 											return "Buy"
 										end
@@ -178,6 +178,8 @@ function Controller.Start()
 						else
 							if DanceData.Currency == "Coins" then
 								Purchase:Fire("Emote", DanceData.Name)
+							elseif DanceData.Currency == "Robux" then
+								MarketplaceService:PromptGamePassPurchase(LocalPlayer, DanceData.ID)
 							end
 						end
 					end,
