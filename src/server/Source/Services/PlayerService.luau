@@ -1,9 +1,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
-local PlacesService = game:GetService("PlacesService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
-local TouchInputService = game:GetService("TouchInputService")
 
 local Future = require(ReplicatedStorage.Packages.Future)
 local Signal = require(ReplicatedStorage.Packages.Signal)

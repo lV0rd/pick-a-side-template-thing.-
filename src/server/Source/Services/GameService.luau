@@ -1,3 +1,9 @@
+--[[
+GameService.luau 2025/05/11
+
+This script is responsible for the main game loop of my pick a side game template
+]]
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -62,8 +68,8 @@ local Service = {
 
 
 	GameData = {
-		Started = false,
-		Players = {} :: { [Player]: PlayerService.PlayerData },
+		Started = false, --Game running state
+		Players = {} :: { [Player]: PlayerService.PlayerData }, --Loaded players dictionarry
 
 		Thread = {}, --Luau threads incase i need something to do with them
 
@@ -396,14 +402,11 @@ function StartGame()
 	end
 
 	--Set the winner
-	option_a_players = #BlueTeam:GetPlayers()
-	option_b_players = #RedTeam:GetPlayers()
-
 	--No winner if tied
 	local winner
 
-	if option_a_players ~= option_b_players then
-		winner = option_a_players == 0 and option_b_players or option_a_players
+	if #BlueTeam:GetPlayers() ~= #RedTeam:GetPlayers() then
+		winner = if #BlueTeam:GetPlayers() == 0 then RedTeam else BlueTeam
 	end
 
 	--Tell the client who won
@@ -501,9 +504,7 @@ function Service.Start()
 	--Set up the big screen
 	scope:Hydrate(workspace.Screen.SurfaceGui.TextLabel)({
 		Text = Service.GameData.Status,
-		TextColor3 = scope:Computed(function()
-			return Color3.fromRGB(255, 255, 255)
-		end),
+		TextColor3 =Color3.fromRGB(255, 255, 255)
 	})
 
 	--Start intermission
