@@ -2,24 +2,29 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local Teams = game:GetService("Teams")
+--Initiate services
 
 local Source = ServerStorage.Source
 local Services = Source.Services
 local Modules = Source.Modules
+--Source is the container for all the server module scripts
 
 local ReplicaServer = require(Modules.ReplicaServer)
-
 local PlayerService = require(Services.PlayerService)
+--Intellisense for replica + PlayerService for managing players and their data
 
 local Packages = ReplicatedStorage.Packages
 local Shared = ReplicatedStorage.Shared
+
 local Events = Shared.Events
+--Remote events with Red
 
 local Invisible = require(Events.Invisible):Server()
 
 local Settings = require(Shared.Data.Settings)
 local Brainrots = require(Shared.Data.Brainrots)
 
+--I use fusion for its declarative values and scopes
 local Fusion = require(Packages.Fusion)
 
 local scope = Fusion.scoped(Fusion)
@@ -38,6 +43,7 @@ local Barrier = workspace.Barrier
 local Items = ReplicatedStorage.Assets.Items
 local Animations = ReplicatedStorage.Assets.Animations
 
+--Client replicated data
 local GameDataReplica = ReplicaServer.New({
 	Token = ReplicaServer.Token("GameData"),
 	Data = {
@@ -50,22 +56,25 @@ local GameDataReplica = ReplicaServer.New({
 
 GameDataReplica:Replicate()
 
+--The service table that the module returns
 local Service = {
 	Name = script.Name,
+
 
 	GameData = {
 		Started = false,
 		Players = {} :: { [Player]: PlayerService.PlayerData },
 
-		Thread = {},
+		Thread = {}, --Luau threads incase i need something to do with them
 
 		BlueOption = nil,
 		RedOption = nil,
 
-		Status = scope:Value("n/a"),
+		Status = scope:Value("n/a"), --The serverside game status, used to display on the big tv in the main map
 	},
 }
 
+--Self explanatory, used during voting
 local function getTriangularGridOffset(index: number): Vector3
 	local row = math.floor((math.sqrt(8 * index + 1) - 1) / 2)
 	local posInRow = index - row * (row + 1) // 2
@@ -75,6 +84,7 @@ local function getTriangularGridOffset(index: number): Vector3
 	return Vector3.new(x, 0, z) - Vector3.new(2, 0, 0)
 end
 
+--Return the amount of players loaded
 function GetQueLenght(): number
 	local count = 0
 	for i, v in Service.GameData.Players do
@@ -86,6 +96,7 @@ end
 function StartIntermission()
 	local GameData = Service.GameData
 
+	--If the amount of loaded players are less than whats required, skip the intermission and redo
 	if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 		GameData.Status:set("Not enough players!")
 		task.wait(0.1)
@@ -95,17 +106,19 @@ function StartIntermission()
 
 	local IntermissionTime = Settings.INTERMISSION_TIME
 
+	--Tell the client its intermission time
+	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 	GameDataReplica:Set({ "Status" }, "Intermission")
 	GameDataReplica:Set({ "Visible" }, true)
 	GameDataReplica:Set({ "BarVisible" }, true)
 
-	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
-
+	--Initiate intermission
 	while IntermissionTime > 0 do
 		IntermissionTime -= 1
 		GameData.Status:set("Intermission: " .. IntermissionTime .. " seconds left")
 		task.wait(1)
 
+		--Check again if the amount of loaded players are less than whats required, and redo intermission if yes
 		if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 			task.wait(1)
 			StartIntermission()
@@ -113,7 +126,7 @@ function StartIntermission()
 		end
 	end
 
-	--Start
+	--Start (again, we check the amount of loaded players)
 	if GetQueLenght() < Settings.REQUIRED_PLAYERS then
 		StartIntermission()
 		return
@@ -125,15 +138,18 @@ end
 function StartGame()
 	local GameData = Service.GameData
 
+	--Starting game
 	GameData.Started = true
 	GameDataReplica:Set({ "Time" }, 0)
 	GameDataReplica:Set({ "Visible" }, false)
 
+	--Picking themes for both sides
 	local BrainrotsLenght = #Brainrots
 
 	GameData.BlueOption = math.random(BrainrotsLenght)
 	GameData.RedOption = math.random(BrainrotsLenght)
 
+	--If a theme has been selected by both sides, we start a new loop to try and pick a diffirent theme
 	while GameData.BlueOption == GameData.RedOption do
 		GameData.RedOption = math.random(BrainrotsLenght)
 	end
@@ -141,6 +157,7 @@ function StartGame()
 	local RedIndex = Brainrots[GameData.RedOption]
 	local BlueIndex = Brainrots[GameData.BlueOption]
 
+	--Sounds of the themes (italian brainrot sounds in this case)
 	local BlueSound = Instance.new("Sound")
 	local RedSound = Instance.new("Sound")
 	BlueSound.SoundId = BlueIndex.Sound
@@ -149,6 +166,7 @@ function StartGame()
 	BlueSound.Parent = VotingPlatforms.Blue.Preview
 	RedSound.Parent = VotingPlatforms.Red.Preview
 
+	--Preview blue side theme
 	GameData.Status:set(BlueIndex.Name)
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = BlueIndex.Image
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Text = BlueIndex.Name
@@ -162,6 +180,8 @@ function StartGame()
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = false
 
 	task.wait(0.5)
+
+	--Preview red side theme
 	GameData.Status:set(RedIndex.Name)
 	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = RedIndex.Image
 	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Text = RedIndex.Name
@@ -170,18 +190,30 @@ function StartGame()
 	RedSound:Play()
 	task.wait(Settings.TIME_BETWEEN_PREVIEW)
 	RedSound:Stop()
+
+	--Show both sides
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = true
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = true
 
+	--Initiate voting
 	GameData.Status:set("Select a meme!")
 	BlueSound:Destroy()
 	RedSound:Destroy()
+
+	--Disable invisible barrier collision
 	Barrier.CanCollide = false
+
+	--Turn other players invisible
 	Invisible:FireAll(true)
 
+	--Voting logic
 	local voting_conn
+
+	--These are needed for the triangular grid positioning
 	local votes = { blue = {}, red = {} }
 
+	--Check every frame wether a player has stepped on the voting pads or no
+	--When a player has stepped on one, triangule grid will position them, and then disable their movement
 	voting_conn = RunService.PostSimulation:Connect(function()
 		for player: Player, playerData in GameData.Players do
 			if player:GetAttribute("OptionSelected") then
@@ -202,6 +234,7 @@ function StartGame()
 			local hit = workspace:Raycast(character:GetPivot().Position, Vector3.yAxis * -10, Params)
 
 			if hit ~= nil then
+				--Set their team to the side they picked
 				player:SetAttribute("OptionSelected", hit.Instance.Parent.Name)
 
 				if hit.Instance.Parent.Name == "Blue" then
@@ -237,10 +270,12 @@ function StartGame()
 		end
 	end)
 
+	--Tell the client its time to vote
 	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 	GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
 	GameDataReplica:Set({ "Visible" }, true)
 
+	--Voting time loop
 	local VotingTime = Settings.VOTING_TIME
 
 	while VotingTime > 0 do
@@ -249,17 +284,21 @@ function StartGame()
 		task.wait(1)
 	end
 
+	--Make players visible again
 	Invisible:FireAll(false)
+
+	--Stop the voting logic and make the invisible barrier collidable again
 	voting_conn:Disconnect()
 	Barrier.CanCollide = true
 
+	--Tell the client its time to fight
 	GameData.Status:set("Fight!")
 	GameDataReplica:Set({ "Status" }, "Fight!")
 
 	local option_a_players = 0
 	local option_b_players = 0
 
-	-- count votes, create teams
+	--Check votes, create teams
 	for player: Player, playerData in GameData.Players do
 		local option_selected = player:GetAttribute("OptionSelected")
 
@@ -272,7 +311,7 @@ function StartGame()
 				player.Team = RedTeam
 			end
 
-			-- give sword
+			--Give sword
 			local character = player.Character
 			if not character then
 				continue
@@ -295,19 +334,24 @@ function StartGame()
 				Tool = Items.ClassicSword
 			end
 
+			--Make player able to move
 			humanoid.WalkSpeed = 16
 
+			--Give weapon to player
 			Tool:Clone().Parent = player.Backpack
 
+			--Make team players spectators when they die
 			humanoid.Died:Once(function()
 				player.Team = Teams.Lobby
 				player.TeamColor = BrickColor.White()
 			end)
 
+			--Color indicator above player heads
 			local ColorIndicatorClone = ReplicatedStorage.Assets.Gui.ColorIndicator:Clone()
 			ColorIndicatorClone.Frame.BackgroundColor3 = player.TeamColor.Color
 			ColorIndicatorClone.Parent = character.Head
 		else
+			--If a player has not voted, and are still within the voting zone, they get reset back to the lobby
 			local Character = player.Character
 			if not Character then
 				continue
@@ -322,21 +366,26 @@ function StartGame()
 		end
 	end
 
+	--If there are players that voted, we initiate fighting
 	if option_a_players > 0 and option_b_players > 0 then
 		GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
 
 		local FightingTime = Settings.FIGHTING_TIME
 
+		--Start fighting
 		while FightingTime > 0 do
+			--If one side is empty, stop the fight
 			if #BlueTeam:GetPlayers() == 0 or #RedTeam:GetPlayers() == 0 then
 				break
 			end
+
 			FightingTime -= 1
 			GameData.Status:set("Fight! " .. FightingTime .. " seconds left")
 			task.wait(1)
 		end
 	end
 
+	--Remove weapons from player inventory
 	for v: Player, playerData in GameData.Players do
 		v.Backpack:ClearAllChildren()
 
@@ -346,46 +395,44 @@ function StartGame()
 		end
 	end
 
+	--Set the winner
 	option_a_players = #BlueTeam:GetPlayers()
 	option_b_players = #RedTeam:GetPlayers()
 
-	-- no winner if tied
+	--No winner if tied
 	local winner
 
 	if option_a_players ~= option_b_players then
-		if option_a_players == 0 then
-			winner = RedTeam
-		elseif option_b_players == 0 then
-			winner = BlueTeam
-		end
+		winner = option_a_players == 0 and option_b_players or option_a_players
 	end
 
-	print(winner)
+	--Tell the client who won
 	GameDataReplica:Set({ "BarVisible" }, false)
 	GameDataReplica:Set({ "Status" }, winner and winner.Name .. " Team Wins!" or "No winner!")
 	GameData.Status:set(winner and winner.Name .. " Team Wins!" or "No winner!")
 
+	--If game isnt tied
 	if winner then
 		for i, player in winner:GetPlayers() do
-			print("e")
 			local PlayerData = GameData.Players[player]
 			if not PlayerData then
 				continue
 			end
 
+			--Victory dance
 			local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
 
 			if EquippedEmote == "" then
 				EquippedEmote = "Default"
 			end
 
+			--Award players with coins and wins
 			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + 1 * PlayerData.LocalData.Data.WinsMultiplier)
 			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500 * PlayerData.LocalData.Data.CoinsMultiplier)
 
-			print(PlayerData.Replica)
-
 			player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
 
+			--Play victory dance on winners
 			local character = player.Character
 			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
 			local animator = humanoid:FindFirstChild("Animator") :: Animator
@@ -396,6 +443,7 @@ function StartGame()
 		end
 	end
 
+	--Let winners celebrate (if its tied itll just wait)
 	for i = Settings.CELEBRATE_TIME, 0, -1 do
 		if i == math.ceil(Settings.CELEBRATE_TIME / 3) then
 			GameDataReplica:Set({ "Visible" }, false)
@@ -412,24 +460,29 @@ function StartGame()
 		task.spawn(player.LoadCharacter, player)
 	end
 
+	--Make previews invisible
 	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Visible = false
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
 
+	--Set preview image back to question mark
 	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = "rbxassetid://109014405058927"
 
-	table.clear(votes.red)
-	table.clear(votes.blue)
+	--Clean up votes table
+	table.clear(votes)
 
+	--Start intermission
 	StartIntermission()
 end
 
 function Service.Start()
+	--Detect when a player has loaded and insert them into the Players dictionary
 	PlayerService.PlayerJoinSignal:Connect(function(Player: Player)
 		local PlayerData = PlayerService:GetPlayer(Player)
 		Service.GameData.Players[Player] = PlayerData
 	end)
 
+	--Detect when a loaded player has left, and remove them from the Players dictionary if they're in it
 	PlayerService.PlayerLeaveSignal:Connect(function(Player: Player)
 		if not Service.GameData.Players[Player] then
 			return
@@ -438,12 +491,14 @@ function Service.Start()
 		Service.GameData.Players[Player] = nil
 	end)
 
+	--Script may run after a few players have loaded, so we must check for them
 	for Player, PlayerData in PlayerService.Players do
 		if not Service.GameData.Players[Player] then
 			Service.GameData.Players[Player] = PlayerData
 		end
 	end
 
+	--Set up the big screen
 	scope:Hydrate(workspace.Screen.SurfaceGui.TextLabel)({
 		Text = Service.GameData.Status,
 		TextColor3 = scope:Computed(function()
@@ -451,6 +506,7 @@ function Service.Start()
 		end),
 	})
 
+	--Start intermission
 	StartIntermission()
 end
 
