@@ -13,6 +13,8 @@ local Attack = require(Events.Attack):Server()
 
 local Debounces = {}
 
+local Ragdoll = require(Shared.Utils.Ragdoll)
+
 function Service.Start()
 	Attack:On(function(Player)
 		local UserId = Player.UserId
@@ -53,20 +55,28 @@ function Service.Start()
 
 		local Debounce = false
 
-		Debris:AddItem(Hitbox, 0.2)
+		local Touched
 
-		Hitbox.Touched:Connect(function(Hit)
+		task.delay(0.2, function()
+			if Touched then
+				Touched:Disconnect()
+				Touched = nil
+			end
+			Hitbox:Destroy()
+		end)
+
+		Touched = Hitbox.Touched:Connect(function(Hit)
 			if Debounce then
 				return
 			end
 
-			local Character = Hit.Parent
-			local Humanoid = Character:FindFirstChild("Humanoid") :: Humanoid?
-			if not Humanoid then
+			local OtherCharacter = Hit.Parent
+			local OtherHumanoid = OtherCharacter:FindFirstChild("Humanoid") :: Humanoid?
+			if not OtherHumanoid then
 				return
 			end
 
-			local HitPlayer = Players:GetPlayerFromCharacter(Character)
+			local HitPlayer = Players:GetPlayerFromCharacter(OtherCharacter)
 
 			if not HitPlayer then
 				return
@@ -82,7 +92,13 @@ function Service.Start()
 
 			Debounce = true
 
-			Humanoid:TakeDamage(ToolData.Damage)
+			OtherHumanoid:TakeDamage(ToolData.Damage)
+			if OtherHumanoid.RootPart and Humanoid.RootPart then
+				local direction = (OtherHumanoid.RootPart.Position - Humanoid.RootPart.Position).Unit
+				local knockbackVelocity = (direction * 50) + Vector3.new(0, 60, 0) -- adjust power as needed
+				OtherHumanoid.RootPart.AssemblyLinearVelocity = knockbackVelocity
+			end
+			Ragdoll.TimedRagdoll(OtherCharacter, .2)
 
 			Hitbox:Destroy()
 		end)

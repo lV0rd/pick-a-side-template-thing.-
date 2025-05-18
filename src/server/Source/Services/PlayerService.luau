@@ -1,3 +1,4 @@
+local BadgeService = game:GetService("BadgeService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -7,6 +8,8 @@ local Future = require(ReplicatedStorage.Packages.Future)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Timer = require(ReplicatedStorage.Packages.Timer)
 local IDs = require(ReplicatedStorage.Shared.Data.IDs)
+
+local WelcomeBadgeId = IDs.Badges.Welcome
 
 local Source = ServerStorage.Source
 local Modules = Source.Modules
@@ -228,6 +231,14 @@ for i, Player in Players:GetPlayers() do
 end
 
 Players.PlayerAdded:Connect(function(Player)
+	task.spawn(function()
+		local OwnWelcomeBadge = Future.Try(function()
+			return BadgeService:UserHasBadgeAsync(Player.UserId, WelcomeBadgeId)
+		end)
+		if not OwnWelcomeBadge then
+			BadgeService:AwardBadge(Player.UserId, WelcomeBadgeId)
+		end
+	end)
 	Service:PlayerJoin(Player)
 end)
 

@@ -88,4 +88,9 @@ return {
 				else nil,
 		},
 	},
+
+	Badges = {
+		Welcome = 102019210,
+		Victory = 696969696969,
+	}
 }

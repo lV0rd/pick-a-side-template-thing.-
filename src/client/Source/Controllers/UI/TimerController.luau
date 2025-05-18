@@ -34,9 +34,7 @@ local peek = Fusion.peek
 local Status = scope:Value("Intermission")
 local CalculatedTime = scope:Value(0)
 local Visible = scope:Value(false)
-local BarVisible = scope:Value(true)
-
-local CurrentStatusTime
+local TimeFinal = scope:Value(0)
 
 function Controller.Start()
 	local GameData = DataController:GetGameDataAsync() :: ReplicaClient.Replica
@@ -45,17 +43,7 @@ function Controller.Start()
 
 	GameData:OnSet({ "Status" }, function()
 		Status:set(GameData.Data.Status)
-		if string.match(peek(Status), "Intermission") then
-			CurrentStatusTime = Settings.INTERMISSION_TIME
-		elseif string.match(peek(Status), "Vote") then
-			CurrentStatusTime = Settings.VOTING_TIME
-		elseif string.match(peek(Status), "Fight") then
-			CurrentStatusTime = Settings.FIGHTING_TIME
-		else
-			CurrentStatusTime = nil
-		end
-
-		BarFrame.Size = UDim2.fromScale(1, 1)
+		BarFrame.Size = UDim2.fromScale(0, 0)
 	end)
 
 	GameData:OnSet({ "Time" }, function()
@@ -66,8 +54,8 @@ function Controller.Start()
 		Visible:set(GameData.Data.Visible)
 	end)
 
-	GameData:OnSet({ "BarVisible" }, function()
-		BarVisible:set(GameData.Data.BarVisible)
+	GameData:OnSet({ "TimeFinal" }, function()
+		TimeFinal:set(GameData.Data.TimeFinal)
 	end)
 
 	scope:Hydrate(StatusText)({
@@ -80,23 +68,36 @@ function Controller.Start()
 				return UDim2.fromScale(use(CalculatedTime), 1)
 			end
 
-			return UDim2.fromScale(1, 1)
+			return UDim2.fromScale(0, 0)
 		end),
 	})
 
 	scope:Hydrate(TimerFrame)({
-		Visible = BarVisible,
+		Visible = scope:Computed(function(use)
+			if use(CalculatedTime) <= 0 then
+				return false
+			else
+				return true
+			end
+		end),
 	})
 
 	scope:Hydrate(Timer)({
 		Visible = Visible,
 	})
 
-	RunService.PreRender:Connect(function()
-		if CurrentStatusTime and Time > 0 then
+	RunService.RenderStepped:Connect(function()
+		if peek(TimeFinal) and Time > 0 then
 			local currentTime = workspace:GetServerTimeNow()
-			local elapsed = currentTime - Time
-			CalculatedTime:set(math.clamp(elapsed / CurrentStatusTime, 0, 1))
+			local remainingDuration = peek(TimeFinal) - Time
+
+			if remainingDuration > 0  then
+				local elapsed = currentTime - Time
+				local progress = math.clamp(elapsed / remainingDuration, 0, 1)
+				CalculatedTime:set(progress < 1 and progress or -1)
+			else
+				CalculatedTime:set(-1)
+			end
 		else
 			CalculatedTime:set(-1)
 		end

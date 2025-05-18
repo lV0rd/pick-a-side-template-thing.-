@@ -4,9 +4,11 @@ GameService.luau 2025/05/11
 This script is responsible for the main game loop of my pick a side game template
 ]]
 
+local BadgeService = game:GetService("BadgeService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local SoundService = game:GetService("SoundService")
 local Teams = game:GetService("Teams")
 --Initiate services
 
@@ -15,6 +17,7 @@ local Services = Source.Services
 local Modules = Source.Modules
 --Source is the container for all the server module scripts
 
+local Future = require(ReplicatedStorage.Packages.Future)
 local ReplicaServer = require(Modules.ReplicaServer)
 local PlayerService = require(Services.PlayerService)
 --Intellisense for replica + PlayerService for managing players and their data
@@ -30,6 +33,9 @@ local Notify = require(Events.Notify):Server()
 
 local Settings = require(Shared.Data.Settings)
 local Brainrots = require(Shared.Data.Brainrots)
+local IDs = require(Shared.Data.IDs)
+
+local VictoryBadge = IDs.Badges.Victory
 
 --I use fusion for its declarative values and scopes
 local Fusion = require(Packages.Fusion)
@@ -57,7 +63,7 @@ local GameDataReplica = ReplicaServer.New({
 		Status = "Intermission",
 		Time = 0,
 		Visible = false,
-		BarVisible = false,
+		TimeFinal = false,
 	},
 })
 
@@ -66,7 +72,6 @@ GameDataReplica:Replicate()
 --The service table that the module returns
 local Service = {
 	Name = script.Name,
-
 
 	GameData = {
 		Started = false, --Game running state
@@ -114,10 +119,11 @@ function StartIntermission()
 	local IntermissionTime = Settings.INTERMISSION_TIME
 
 	--Tell the client its intermission time
-	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
+	local ServerTimeNow = workspace:GetServerTimeNow()
+	GameDataReplica:Set({ "Time" }, ServerTimeNow)
 	GameDataReplica:Set({ "Status" }, "Intermission")
 	GameDataReplica:Set({ "Visible" }, true)
-	GameDataReplica:Set({ "BarVisible" }, true)
+	GameDataReplica:Set({ "TimeFinal" }, ServerTimeNow + Settings.INTERMISSION_TIME)
 
 	--Initiate intermission
 	while IntermissionTime > 0 do
@@ -148,7 +154,7 @@ function StartGame()
 	--Starting game
 	GameData.Started = true
 	GameDataReplica:Set({ "Time" }, 0)
-	GameDataReplica:Set({ "Visible" }, false)
+	GameDataReplica:Set({ "TimeFinal" }, 0)
 
 	--Picking themes for both sides
 	local BrainrotsLenght = #Brainrots
@@ -278,9 +284,12 @@ function StartGame()
 	end)
 
 	--Tell the client its time to vote
-	GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
-	GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
-	GameDataReplica:Set({ "Visible" }, true)
+	do
+		local ServerTimeNow = workspace:GetServerTimeNow()
+		GameDataReplica:Set({ "Time" }, ServerTimeNow)
+		GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
+		GameDataReplica:Set({ "TimeFinal" }, ServerTimeNow + Settings.VOTING_TIME)
+	end
 
 	--Voting time loop
 	local VotingTime = Settings.VOTING_TIME
@@ -375,7 +384,11 @@ function StartGame()
 
 	--If there are players that voted, we initiate fighting
 	if option_a_players > 0 and option_b_players > 0 then
-		GameDataReplica:Set({ "Time" }, workspace:GetServerTimeNow())
+		do
+			local ServerTimeNow = workspace:GetServerTimeNow()
+			GameDataReplica:Set({ "Time" }, ServerTimeNow)
+			GameDataReplica:Set({ "TimeFinal" }, ServerTimeNow + Settings.FIGHTING_TIME)
+		end
 
 		local FightingTime = Settings.FIGHTING_TIME
 
@@ -411,12 +424,15 @@ function StartGame()
 	end
 
 	--Tell the client who won
-	GameDataReplica:Set({ "BarVisible" }, false)
 	GameDataReplica:Set({ "Status" }, winner and winner.Name .. " Team Wins!" or "No winner!")
 	GameData.Status:set(winner and winner.Name .. " Team Wins!" or "No winner!")
 
 	--If game isnt tied
 	if winner then
+		--Play victory sound
+		SoundService.Victory:Play()
+
+		--Award winners
 		for i, player in winner:GetPlayers() do
 			local PlayerData = GameData.Players[player]
 			if not PlayerData then
@@ -426,12 +442,26 @@ function StartGame()
 			--Victory dance
 			local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
 
+			--If none, set to default
 			if EquippedEmote == "" then
 				EquippedEmote = "Default"
 			end
 
 			local CoinsAwardedAmount = 500 * PlayerData.LocalData.Data.CoinsMultiplier
 			local WinsAwaredAmount = 1 * PlayerData.LocalData.Data.WinsMultiplier
+
+			--Award first victory badge
+			task.defer(function()
+				local OwnsVictoryBadge = Future.Try(function()
+					return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
+				end):Await()
+
+				if not OwnsVictoryBadge then
+					if PlayerData.Replica.Data.Wins < 1 then
+						BadgeService:AwardBadge(player.UserId, VictoryBadge)
+					end
+				end
+			end)
 
 			--Award players with coins and wins
 			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + WinsAwaredAmount)
@@ -464,11 +494,13 @@ function StartGame()
 
 	-- cleanup players
 	for player: Player, playerData in GameData.Players do
-		player:SetAttribute("OptionSelected", nil)
-		player.Team = Teams.Lobby
-		player.TeamColor = BrickColor.White()
+		task.defer(function()
+			player:SetAttribute("OptionSelected", nil)
+			player.Team = Teams.Lobby
+			player.TeamColor = BrickColor.White()
 
-		task.spawn(player.LoadCharacter, player)
+			task.spawn(player.LoadCharacter, player)
+		end)
 	end
 
 	--Make previews invisible
@@ -512,7 +544,7 @@ function Service.Start()
 	--Set up the big screen
 	scope:Hydrate(workspace.Screen.SurfaceGui.TextLabel)({
 		Text = Service.GameData.Status,
-		TextColor3 =Color3.fromRGB(255, 255, 255)
+		TextColor3 = Color3.fromRGB(255, 255, 255),
 	})
 
 	--Start intermission
