@@ -76,6 +76,7 @@ return {
 	},
 
 	Products = {
+		--Coins
 		["3285669245"] = {
 			Name = "+1000 Coins",
 			Callback = if RunService:IsServer()
@@ -102,6 +103,37 @@ return {
 				then function(ReceiptInfo: any, PlayerData)
 					local ReplicaData = PlayerData.Replica
 					ReplicaData:Set({ "Coins" }, ReplicaData.Data.Coins + 15000)
+				end
+				else nil,
+		},
+
+		--Spins
+		["3289059202"] = {
+			Name = "+1 Spins",
+			Callback = if RunService:IsServer()
+				then function(ReceiptInfo: any, PlayerData)
+					local ReplicaData = PlayerData.Replica
+					ReplicaData:Set({ "Spins" }, ReplicaData.Data.Spins + 1)
+				end
+				else nil,
+		},
+
+		["3289059201"] = {
+			Name = "+5 Spins",
+			Callback = if RunService:IsServer()
+				then function(ReceiptInfo: any, PlayerData)
+					local ReplicaData = PlayerData.Replica
+					ReplicaData:Set({ "Spins" }, ReplicaData.Data.Spins + 5)
+				end
+				else nil,
+		},
+
+		["3289059203"] = {
+			Name = "+20 Spins",
+			Callback = if RunService:IsServer()
+				then function(ReceiptInfo: any, PlayerData)
+					local ReplicaData = PlayerData.Replica
+					ReplicaData:Set({ "Spins" }, ReplicaData.Data.Spins + 20)
 				end
 				else nil,
 		},

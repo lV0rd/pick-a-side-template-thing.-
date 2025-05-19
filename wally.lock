@@ -3,6 +3,11 @@
 registry = "test"
 
 [[package]]
+name = "evaera/cmdr"
+version = "1.12.0"
+dependencies = []
+
+[[package]]
 name = "evaera/promise"
 version = "4.0.0"
 dependencies = []
@@ -60,4 +65,4 @@ dependencies = []
 [[package]]
 name = "tin/better-brainrot"
 version = "0.1.0"
-dependencies = [["Future", "red-blox/future@1.0.1"], ["Guard", "red-blox/guard@1.0.1"], ["Janitor", "howmanysmall/janitor@1.18.3"], ["Red", "red-blox/red@2.3.2"], ["Signal", "stravant/goodsignal@0.3.0"], ["Spawn", "red-blox/spawn@1.1.0"], ["Timer", "sleitnick/timer@1.1.2"]]
+dependencies = [["Future", "red-blox/future@1.0.1"], ["Guard", "red-blox/guard@1.0.1"], ["Janitor", "howmanysmall/janitor@1.18.3"], ["Red", "red-blox/red@2.3.2"], ["Signal", "stravant/goodsignal@0.3.0"], ["Spawn", "red-blox/spawn@1.1.0"], ["Timer", "sleitnick/timer@1.1.2"], ["cmdr", "evaera/cmdr@1.12.0"]]

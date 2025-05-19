@@ -403,8 +403,14 @@ function StartGame()
 			if not (HumanoidRootPart.Position.X < workspace.CheckPart.Position.X) then
 				continue
 			end
-			task.spawn(player.LoadCharacter, player)
+
+			--Reset player
 			player.Team = Teams.Lobby
+			player.TeamColor = BrickColor.White()
+
+			if player.Character then
+				player.Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
+			end
 		end
 	end
 
@@ -521,11 +527,18 @@ function StartGame()
 	-- cleanup players
 	for player: Player, playerData in GameData.Players do
 		task.defer(function()
-			player:SetAttribute("OptionSelected", nil)
-			player.Team = Teams.Lobby
-			player.TeamColor = BrickColor.White()
+			if player:GetAttribute("OptionSelected") then
+				player:SetAttribute("OptionSelected", nil)
+				player.Team = Teams.Lobby
+				player.TeamColor = BrickColor.White()
 
-			task.spawn(player.LoadCharacter, player)
+				local Character = player.Character
+				if Character then
+					local Humanoid = Character:FindFirstAncestorOfClass("Humanoid")
+					Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
+					Humanoid.Health = Humanoid.MaxHealth
+				end
+			end
 		end)
 	end
 

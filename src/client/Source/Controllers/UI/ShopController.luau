@@ -26,6 +26,7 @@ local CloseButton = ShopMenu.Close
 
 local Gamepasses = ShopMenu.Elements.Gamepasses
 local Products = ShopMenu.Elements.Products
+local Spins = ShopMenu.Elements.Spins
 
 local IDs = require(Shared.Data.IDs)
 
@@ -60,6 +61,7 @@ function Controller.Start()
 		end,
 	})
 
+	--Gamepasses
 	for i, v in Gamepasses.Middle:GetChildren() do
 		if not v:IsA("ImageButton") then
 			continue
@@ -90,7 +92,38 @@ function Controller.Start()
 		}
 	end
 
+	--Coins
 	for i, v in Products.Middle:GetChildren() do
+		if not v:IsA("ImageButton") then
+			continue
+		end
+
+		local ID, ProductData = match(IDs.Products, function(ind, val)
+			return val.Name == v.Name
+		end)
+
+		if not ProductData then
+			warn("No product data found for ", v.Name)
+			continue
+		end
+
+		local GamepassRobloxInfo = Future.new(function()
+			return MarketplaceService:GetProductInfo(tonumber(ID), Enum.InfoType.Product)
+		end):Await()
+
+		local Price = GamepassRobloxInfo.PriceInRobux or "n/a"
+		v.Cost.Text = "R$"..(Price)
+		v.Title.Text = ProductData.Name
+
+		scope:Hydrate(v) {
+			[OnEvent "MouseButton1Click"] = function()
+				MarketplaceService:PromptProductPurchase(LocalPlayer, tonumber(ID))
+			end
+		}
+	end
+
+	--Spins
+	for i, v in Spins.Middle:GetChildren() do
 		if not v:IsA("ImageButton") then
 			continue
 		end

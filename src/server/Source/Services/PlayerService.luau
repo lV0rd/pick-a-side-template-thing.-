@@ -73,7 +73,8 @@ function characterSpawn(Character)
 	local LocalData = PlayerData.LocalData.Data
 	local Humanoid: Humanoid = Character:FindFirstChild("Humanoid")
 
-	Humanoid.Health *= LocalData.HealthMultiplier
+	Humanoid.MaxHealth *= LocalData.HealthMultiplier
+	Humanoid.Health = Humanoid.MaxHealth
 
 	Humanoid.Died:Once(function()
 		local KillerTag: ObjectValue? = Character:FindFirstChild("KillerTag")
