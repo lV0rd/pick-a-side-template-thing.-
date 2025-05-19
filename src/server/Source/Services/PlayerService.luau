@@ -1,7 +1,8 @@
 --[[
 PlayerService.luau 2025/05/13
 
-Handling player data, codes, kills and automatic gamepass/swords/dances indexing
+Handling player data, badges(welcome badge), timed spin reward, codes, kills and automatic 
+gamepass/swords/dances indexing
 ]]
 local BadgeService = game:GetService("BadgeService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -47,6 +48,8 @@ local Swords = require(Data.Swords)
 
 local CodeRedeem = require(Events.Codes):Server()
 local Notify = require(Events.Notify):Server()
+
+local SpinDebounce = {} --Debonce for the timed spin reward
 
 local Service = {
 	Name = script.Name,
@@ -116,6 +119,7 @@ end
 
 function Service:PlayerJoin(Player: Player)
 	Player:SetAttribute("JoinTime", workspace:GetServerTimeNow())
+	Player:SetAttribute("SpinTime", workspace:GetServerTimeNow())
 
 	local Connections = {}
 
@@ -296,9 +300,9 @@ Players.PlayerRemoving:Connect(function(Player)
 	Service.PlayerLeaveSignal:Fire(Player)
 end)
 
-local Clock = Timer.new(1)
+local PlaytimeClock = Timer.new(1)
 
-Clock.Tick:Connect(function()
+PlaytimeClock.Tick:Connect(function()
 	for i, v in Service.Players do
 		if v.Profile then
 			v.Replica:Set({ "PlayTime" }, v.Replica.Data.PlayTime + 1)
@@ -306,7 +310,31 @@ Clock.Tick:Connect(function()
 	end
 end)
 
-Clock:Start()
+RunService.Heartbeat:Connect(function()
+	local now = workspace:GetServerTimeNow()
+
+	for Player, PlayerData in Service.Players do
+		if SpinDebounce[Player] then
+			continue
+		end
+
+		local SpinTime = Player:GetAttribute("SpinTime")
+		local Time = math.clamp(Settings.SPIN_TIME_REWARD - (now - SpinTime), 0, Settings.SPIN_TIME_REWARD)
+
+		if Time <= 0 then
+			SpinDebounce[Player] = true
+			task.delay(1, function()
+				SpinDebounce[Player] = false
+			end)
+
+			Player:SetAttribute("SpinTime", now)
+			PlayerData.Replica:Set({ "Spins" }, PlayerData.Replica.Data.Spins + 1)
+			Notify:Fire(Player, "You got a spin!")
+		end
+	end
+end)
+
+PlaytimeClock:Start()
 
 CodeRedeem:On(function(Player: Player, Code: string)
 	local PlayerData = Service:GetPlayer(Player)

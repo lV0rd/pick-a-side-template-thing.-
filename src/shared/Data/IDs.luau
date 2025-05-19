@@ -108,7 +108,7 @@ return {
 	},
 
 	Badges = {
-		Welcome = 102019210,
-		Victory = 696969696969,
+		Welcome = 3367923520368207,
+		Victory = 2117913310368126,
 	}
 }

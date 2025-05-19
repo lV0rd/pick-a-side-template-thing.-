@@ -11,7 +11,10 @@ return {
     SPACING = 0.5,
     MAX_ROW_LENGHT = 5,
 
-    MOCK_DATA_STORE_ENABLED = true
+    MOCK_DATA_STORE_ENABLED = true,
 
     --CLIENT
+
+    --SHARED
+    SPIN_TIME_REWARD = 60 * 5
 }

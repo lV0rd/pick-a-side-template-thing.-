@@ -10,7 +10,7 @@ local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Source = ReplicatedStorage:WaitForChild("Source")
 
-local Data = require(ReplicatedStorage.Source.Events.Data)
+local Settings = require(ReplicatedStorage.Shared.Data.Settings)
 local ReplicaClient = require(Source.Modules.ReplicaClient)
 
 local LocalPlayer = Players.LocalPlayer
@@ -33,6 +33,7 @@ local Wheel = SpinMenu.Wheel.Wheel
 
 local Info = SpinMenu.Info
 local AmountText = Info.Amount.Amount
+local TimerText = Info.Main.Timer
 
 local SpinActivate = Info.Main.Spin
 local ThreeDWheel = workspace.Wheel :: Model
@@ -48,6 +49,12 @@ local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek
 
 local IsSpinning = false
+
+local Start = workspace:GetServerTimeNow()
+
+local function toMS(s)
+	return string.format("%02i:%02i", s / 60, s % 60)
+end
 
 function InitSpinRewards()
 	for i, v in Wheel.Slices:GetChildren() do
@@ -73,6 +80,7 @@ function Controller.Start()
 	local LocalData = DataController:GetLocalDataAsync() :: ReplicaClient.Replica
 
 	local Spins = scope:Value(ReplicateData.Data.Spins)
+	local TimerSpin = scope:Value(0)
 
 	ReplicateData:OnSet({ "Spins" }, function(new, old)
 		Spins:set(new)
@@ -92,6 +100,20 @@ function Controller.Start()
 
 	scope:Hydrate(AmountText)({
 		Text = Spins,
+	})
+
+	scope:Hydrate(TimerText)({
+		Text = scope:Computed(function(use)
+			return toMS(use(TimerSpin))
+		end),
+
+		Visible = scope:Computed(function(use)
+			if use(TimerSpin) < 0 or use(TimerSpin) > Settings.SPIN_TIME_REWARD then
+				return false
+			end
+
+			return true
+		end)
 	})
 
 	scope:Hydrate(SpinActivate)({
@@ -142,7 +164,7 @@ function Controller.Start()
 					.. "%!"
 			)
 
-			task.wait(if LocalData.Data.SpinDebounce then 2 else .1)
+			task.wait(if LocalData.Data.SpinDebounce then 2 else 0.1)
 
 			Wheel.Rotation = 0
 
@@ -154,6 +176,15 @@ function Controller.Start()
 
 	local Debounce = tick()
 	local Opened = false
+
+	--I appologize for this
+
+	RunService.PostSimulation:Connect(function()
+		local now = workspace:GetServerTimeNow()
+		local SpinTime = LocalPlayer:GetAttribute("SpinTime") or Start
+		local Time = math.clamp(Settings.SPIN_TIME_REWARD - (now - SpinTime), 0, Settings.SPIN_TIME_REWARD)
+		TimerSpin:set(Time)
+	end)
 
 	RunService.PostSimulation:Connect(function()
 		if tick() - Debounce < 0.2 then
