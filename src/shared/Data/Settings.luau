@@ -11,5 +11,7 @@ return {
     SPACING = 0.5,
     MAX_ROW_LENGHT = 5,
 
+    MOCK_DATA_STORE_ENABLED = true
+
     --CLIENT
 }

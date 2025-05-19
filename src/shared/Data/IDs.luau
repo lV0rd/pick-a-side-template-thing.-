@@ -13,6 +13,7 @@ return {
 				end
 				else nil,
 		},
+
 		["1214504658"] = {
 			Name = "Double Coins",
 			Description = "Earn double the coins!",
@@ -24,6 +25,7 @@ return {
 				end
 				else nil,
 		},
+
 		["1218319054"] = {
 			Name = "Double Health",
 			Description = "Get stronger with double health!",
@@ -35,6 +37,19 @@ return {
 				end
 				else nil,
 		},
+
+		["1225617247"] = {
+			Name = "Double Kills",
+			Description = "Earn double the kills!",
+			OnJoin = true,
+			Callback = if RunService:IsServer()
+				then function(Player: Player, PlayerData)
+					local LocalData = PlayerData.LocalData
+					LocalData:Set({ "KillsMultiplier" }, 2)
+				end
+				else nil,
+		},
+
 		["1215086673"] = {
 			Name = "Instant Spin",
 			Description = "No waiting for the spin wheel to finish!",
@@ -46,6 +61,7 @@ return {
 				end
 				else nil,
 		},
+
         ["1221624083"] = {
             Name = "Special Emotes",
 			Description = "Get cool emotes!",
@@ -69,6 +85,7 @@ return {
 				end
 				else nil,
 		},
+
 		["3285669246"] = {
 			Name = "+5000 Coins",
 			Callback = if RunService:IsServer()
@@ -78,6 +95,7 @@ return {
 				end
 				else nil,
 		},
+		
 		["3285669262"] = {
 			Name = "+15000 Coins",
 			Callback = if RunService:IsServer()

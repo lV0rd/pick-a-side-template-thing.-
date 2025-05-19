@@ -7,7 +7,6 @@ local Controller = {
 
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Source = ReplicatedStorage:WaitForChild("Source")
-local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
@@ -24,8 +23,6 @@ local BarFrame = TimerFrame.Bar :: Frame
 
 local DataController = require(Source.Controllers.DataController)
 local ReplicaClient = require(Source.Modules.ReplicaClient)
-
-local Settings = require(Shared.Data.Settings)
 
 local Fusion = require(Packages.Fusion)
 local scope = Fusion.scoped(Fusion)

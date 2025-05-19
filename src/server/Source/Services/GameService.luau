@@ -5,6 +5,7 @@ This script is responsible for the main game loop of my pick a side game templat
 ]]
 
 local BadgeService = game:GetService("BadgeService")
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -32,7 +33,7 @@ local Invisible = require(Events.Invisible):Server()
 local Notify = require(Events.Notify):Server()
 
 local Settings = require(Shared.Data.Settings)
-local Brainrots = require(Shared.Data.Brainrots)
+local Themes = require(Shared.Data.Themes)
 local IDs = require(Shared.Data.IDs)
 
 local VictoryBadge = IDs.Badges.Victory
@@ -155,20 +156,21 @@ function StartGame()
 	GameData.Started = true
 	GameDataReplica:Set({ "Time" }, 0)
 	GameDataReplica:Set({ "TimeFinal" }, 0)
+	GameDataReplica:Set({ "Visible" }, false)
 
 	--Picking themes for both sides
-	local BrainrotsLenght = #Brainrots
+	local ThemesLenght = #Themes
 
-	GameData.BlueOption = math.random(BrainrotsLenght)
-	GameData.RedOption = math.random(BrainrotsLenght)
+	GameData.BlueOption = math.random(ThemesLenght)
+	GameData.RedOption = math.random(ThemesLenght)
 
 	--If a theme has been selected by both sides, we start a new loop to try and pick a diffirent theme
 	while GameData.BlueOption == GameData.RedOption do
-		GameData.RedOption = math.random(BrainrotsLenght)
+		GameData.RedOption = math.random(ThemesLenght)
 	end
 
-	local RedIndex = Brainrots[GameData.RedOption]
-	local BlueIndex = Brainrots[GameData.BlueOption]
+	local RedIndex = Themes[GameData.RedOption]
+	local BlueIndex = Themes[GameData.BlueOption]
 
 	--Sounds of the themes (italian brainrot sounds in this case)
 	local BlueSound = Instance.new("Sound")
@@ -179,11 +181,21 @@ function StartGame()
 	BlueSound.Parent = VotingPlatforms.Blue.Preview
 	RedSound.Parent = VotingPlatforms.Red.Preview
 
+	--Dramatic effect
+	SoundService.Preview:Play()
+	Lighting.GlobalShadows = true
+	VotingPlatforms.Blue.Platform.Material = Enum.Material.Plastic
+	VotingPlatforms.Red.Platform.Material = Enum.Material.Plastic
+
+	task.wait(1)
+
 	--Preview blue side theme
 	GameData.Status:set(BlueIndex.Name)
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Image = BlueIndex.Image
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Text = BlueIndex.Name
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = true
+	VotingPlatforms.Blue.Platform.LightAttachment.Light.Enabled = true
+	VotingPlatforms.Blue.Platform.Material = Enum.Material.Neon
 
 	BlueSound:Play()
 	task.wait(Settings.TIME_BETWEEN_PREVIEW)
@@ -191,6 +203,8 @@ function StartGame()
 
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = false
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = false
+	VotingPlatforms.Blue.Platform.LightAttachment.Light.Enabled = false
+	VotingPlatforms.Blue.Platform.Material = Enum.Material.Plastic
 
 	task.wait(0.5)
 
@@ -199,6 +213,8 @@ function StartGame()
 	VotingPlatforms.Red.Preview.ScreenGui.ImageLabel.Image = RedIndex.Image
 	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Text = RedIndex.Name
 	VotingPlatforms.Red.Preview.ScreenGui.TextLabel.Visible = true
+	VotingPlatforms.Red.Platform.LightAttachment.Light.Enabled = true
+	VotingPlatforms.Red.Platform.Material = Enum.Material.Neon
 
 	RedSound:Play()
 	task.wait(Settings.TIME_BETWEEN_PREVIEW)
@@ -207,6 +223,9 @@ function StartGame()
 	--Show both sides
 	VotingPlatforms.Blue.Preview.ScreenGui.TextLabel.Visible = true
 	VotingPlatforms.Blue.Preview.ScreenGui.ImageLabel.Visible = true
+	VotingPlatforms.Blue.Platform.LightAttachment.Light.Enabled = true
+	VotingPlatforms.Blue.Platform.Material = Enum.Material.Neon
+	workspace.Screen.LightAttachment.Light.Enabled = true
 
 	--Initiate voting
 	GameData.Status:set("Select a meme!")
@@ -286,6 +305,7 @@ function StartGame()
 	--Tell the client its time to vote
 	do
 		local ServerTimeNow = workspace:GetServerTimeNow()
+		GameDataReplica:Set({ "Visible" }, true)
 		GameDataReplica:Set({ "Time" }, ServerTimeNow)
 		GameDataReplica:Set({ "Status" }, "Vote for your favourite meme!")
 		GameDataReplica:Set({ "TimeFinal" }, ServerTimeNow + Settings.VOTING_TIME)
@@ -306,6 +326,12 @@ function StartGame()
 	--Stop the voting logic and make the invisible barrier collidable again
 	voting_conn:Disconnect()
 	Barrier.CanCollide = true
+
+	--Turn off the lights
+	VotingPlatforms.Blue.Platform.LightAttachment.Light.Enabled = false
+	VotingPlatforms.Red.Platform.LightAttachment.Light.Enabled = false
+	workspace.Screen.LightAttachment.Light.Enabled = false
+	Lighting.GlobalShadows = false
 
 	--Tell the client its time to fight
 	GameData.Status:set("Fight!")

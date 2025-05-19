@@ -14,8 +14,6 @@ local Functions = Shared.Functions
 local Controllers = Source.Controllers
 local Modules = Source.Modules
 
-local Child = require(ReplicatedStorage.Packages.Fusion.Instances.Child)
-local peek = require(ReplicatedStorage.Packages.Fusion.State.peek)
 local DataController = require(Controllers.DataController)
 local ReplicaClient = require(Modules.ReplicaClient)
 
@@ -39,6 +37,7 @@ local Fusion = require(Packages.Fusion)
 local scope = Fusion.scoped(Fusion)
 local Children = Fusion.Children
 local OnEvent = Fusion.OnEvent
+local peek = Fusion.peek
 
 local Rewards = require(Shared.Data.Rewards)
 

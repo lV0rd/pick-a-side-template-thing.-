@@ -1,3 +1,8 @@
+--[[
+MarketplaceService.luau 2025/05/13
+
+Handling gamepass and dev products purchasing safely
+]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ServerStorage = game:GetService("ServerStorage")

@@ -1,7 +1,6 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
 local Controller = {
 	Name = script.Name,
 }
@@ -107,10 +106,10 @@ function Controller.Start()
 
 		local GamepassRobloxInfo = Future.new(function()
 			return MarketplaceService:GetProductInfo(tonumber(ID), Enum.InfoType.Product)
-		end):Await() or "n/a"
+		end):Await()
 
-		local Price = GamepassRobloxInfo.PriceInRobux
-		v.Cost.Text = "R$"..Price
+		local Price = GamepassRobloxInfo.PriceInRobux or "n/a"
+		v.Cost.Text = "R$"..(Price)
 		v.Title.Text = ProductData.Name
 
 		scope:Hydrate(v) {

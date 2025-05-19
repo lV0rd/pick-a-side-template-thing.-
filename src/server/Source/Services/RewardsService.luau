@@ -1,3 +1,8 @@
+--[[
+RewardsService.luau 2025/05/13
+
+Handling playtime and daily rewards, follow rewards and spin the wheel rewards
+]]
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -11,8 +16,6 @@ local Functions = Shared.Functions
 
 local Notify = require(Events.Notify):Server()
 
-local New = require(ReplicatedStorage.Packages.Fusion.Instances.New)
-local IDs = require(Shared.Data.IDs)
 local Rewards = require(Shared.Data.Rewards)
 
 local Spin = require(Functions.Spin)

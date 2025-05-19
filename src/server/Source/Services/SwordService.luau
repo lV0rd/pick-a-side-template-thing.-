@@ -1,4 +1,8 @@
-local Debris = game:GetService("Debris")
+--[[
+SwordService.luau 2025/05/13
+
+Handling weapons, and tagging
+]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Service = {
@@ -14,6 +18,17 @@ local Attack = require(Events.Attack):Server()
 local Debounces = {}
 
 local Ragdoll = require(Shared.Utils.Ragdoll)
+
+function Tag(Tagged, Tagger : Player)
+	if Tagged:FindFirstChild("KillerTag") then
+		Tagged:FindFirstChild("KillerTag").Value = Tagger
+		return
+	end
+
+	local TagInstance = Instance.new("ObjectValue")
+	TagInstance.Value = Tagger
+	TagInstance.Parent = Tagged
+end
 
 function Service.Start()
 	Attack:On(function(Player)
@@ -92,13 +107,15 @@ function Service.Start()
 
 			Debounce = true
 
+			Tag(OtherCharacter, Player)
+
 			OtherHumanoid:TakeDamage(ToolData.Damage)
 			if OtherHumanoid.RootPart and Humanoid.RootPart then
 				local direction = (OtherHumanoid.RootPart.Position - Humanoid.RootPart.Position).Unit
 				local knockbackVelocity = (direction * 50) + Vector3.new(0, 60, 0) -- adjust power as needed
 				OtherHumanoid.RootPart.AssemblyLinearVelocity = knockbackVelocity
 			end
-			Ragdoll.TimedRagdoll(OtherCharacter, .2)
+			Ragdoll.TimedRagdoll(OtherCharacter, 0.2)
 
 			Hitbox:Destroy()
 		end)

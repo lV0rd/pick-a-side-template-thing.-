@@ -1,13 +1,20 @@
+--[[
+PlayerService.luau 2025/05/13
+
+Handling player data, codes, kills and automatic gamepass/swords/dances indexing
+]]
 local BadgeService = game:GetService("BadgeService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Future = require(ReplicatedStorage.Packages.Future)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Timer = require(ReplicatedStorage.Packages.Timer)
 local IDs = require(ReplicatedStorage.Shared.Data.IDs)
+local Settings = require(ReplicatedStorage.Shared.Data.Settings)
 
 local WelcomeBadgeId = IDs.Badges.Welcome
 
@@ -20,7 +27,13 @@ local ReplicaServer = require(Modules.ReplicaServer)
 
 local Template = require(Modules.ProfileTemplate)
 
-local PlayerStore = ProfileStore.New("GameTestingDataStudio" .. tostring(tick()), Template)
+local PlayerStore
+
+if Settings.MOCK_DATA_STORE_ENABLED and RunService:IsStudio() then
+	PlayerStore = ProfileStore.New("MockData", Template).Mock
+else
+	PlayerStore = ProfileStore.New("GameData", Template)
+end
 
 local PlayerDataReplicaToken = ReplicaServer.Token("PlayerData")
 local LocalDataReplicaToken = ReplicaServer.Token("LocalData")
@@ -50,14 +63,39 @@ export type PlayerData = {
 	LocalData: ReplicaServer.Replica,
 }
 
-function updateHealth(Character)
+function characterSpawn(Character)
 	local Player = Players:GetPlayerFromCharacter(Character)
 	local PlayerData = Service:GetPlayer(Player)
 
 	local LocalData = PlayerData.LocalData.Data
-	local Humanoid = Character:FindFirstChild("Humanoid")
+	local Humanoid: Humanoid = Character:FindFirstChild("Humanoid")
 
 	Humanoid.Health *= LocalData.HealthMultiplier
+
+	Humanoid.Died:Once(function()
+		local KillerTag: ObjectValue? = Character:FindFirstChild("KillerTag")
+		if not KillerTag then
+			return
+		end
+
+		if not KillerTag.Value then
+			return
+		end
+
+		local KillerData = Service:GetPlayer(KillerTag.Value)
+		if not KillerData then
+			return
+		end
+
+		local AwardedCoins = 100 * KillerData.LocalData.Data.CoinsMultiplier
+		local AwardedKills = 1 * KillerData.LocalData.Data.KillsMultipler
+
+		KillerData.Replica:Set({"Kills"}, KillerData.Replica.Data.Kills + AwardedKills)
+		KillerData.Replica:Set({"Coins"}, KillerData.Replica.Data.Coins + AwardedCoins)
+
+		Notify:Fire(KillerTag.Value, "You have eleminated "..Player.Name.."! +"..AwardedKills.."Kills")
+		Notify:Fire(KillerTag.Value, "+"..AwardedCoins.."Coins")
+	end)
 end
 
 function Service:GetAllPlayers(): { [Player]: PlayerData }
@@ -215,10 +253,10 @@ function Service:PlayerJoin(Player: Player)
 	end
 
 	if Player.Character then
-		updateHealth(Player.Character)
+		characterSpawn(Player.Character)
 	end
 
-	Connections.Health = Player.CharacterAdded:Connect(updateHealth)
+	Connections.Character = Player.CharacterAdded:Connect(characterSpawn)
 
 	print(Profile)
 	self.PlayerJoinSignal:Fire(Player)

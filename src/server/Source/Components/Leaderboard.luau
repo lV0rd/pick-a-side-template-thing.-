@@ -22,6 +22,10 @@ local DEBOUNCE_LIMIT = 60
 local MIN_VALUE_DISPLAY = 1
 local MAX_VALUE_DISPLAY = 99999999999999
 
+local Blacklisted = {
+	"BlacklistedUser"
+}
+
 local Janitor = require(Packages.Janitor)
 local Future = require(Packages.Future)
 
@@ -131,7 +135,7 @@ function module:init()
 				Username = game.Players:GetNameFromUserIdAsync(tonumber(UserId))
 			end):Await()
 
-			if Username == "EpicBlacklistedUser" then
+			if table.find(Blacklisted, Username) then
 				continue -- Skip blacklisted users
 			end
 
