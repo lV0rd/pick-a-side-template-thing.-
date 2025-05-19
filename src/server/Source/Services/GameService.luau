@@ -478,7 +478,7 @@ function StartGame()
 
 			--Award first victory badge
 			task.defer(function()
-				local OwnsVictoryBadge = Future.Try(function()
+				local _, OwnsVictoryBadge = Future.Try(function()
 					return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
 				end):Await()
 

@@ -1,8 +1,9 @@
 # Project place file
 /better brainrot.rbxlx
-Packages
+Packages/
 sourcemap.json
 .vscode
+wally.lock
 
 # Roblox Studio lock files
 /*.rbxlx.lock

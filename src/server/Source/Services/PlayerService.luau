@@ -33,7 +33,7 @@ local PlayerStore
 if Settings.MOCK_DATA_STORE_ENABLED and RunService:IsStudio() then
 	PlayerStore = ProfileStore.New("MockData", Template).Mock
 else
-	PlayerStore = ProfileStore.New("GameData", Template)
+	PlayerStore = ProfileStore.New("PickaSideGameDataIndex", Template)
 end
 
 local PlayerDataReplicaToken = ReplicaServer.Token("PlayerData")
@@ -274,10 +274,12 @@ end
 
 Players.PlayerAdded:Connect(function(Player)
 	task.spawn(function()
-		local OwnWelcomeBadge = Future.Try(function()
+		local _, OwnWelcomeBadge = Future.Try(function()
 			return BadgeService:UserHasBadgeAsync(Player.UserId, WelcomeBadgeId)
-		end)
+		end):Await()
+		print(OwnWelcomeBadge, 1)
 		if not OwnWelcomeBadge then
+			print(2)
 			BadgeService:AwardBadge(Player.UserId, WelcomeBadgeId)
 		end
 	end)
