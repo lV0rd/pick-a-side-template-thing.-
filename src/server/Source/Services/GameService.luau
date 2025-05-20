@@ -483,17 +483,15 @@ function StartGame()
 			local WinsAwaredAmount = 1 * PlayerData.LocalData.Data.WinsMultiplier
 
 			--Award first victory badge
-			task.defer(function()
-				local _, OwnsVictoryBadge = Future.Try(function()
-					return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
-				end):Await()
+			local _, OwnsVictoryBadge = Future.Try(function()
+				return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
+			end):Await()
 
-				if not OwnsVictoryBadge then
-					if PlayerData.Replica.Data.Wins < 1 then
-						BadgeService:AwardBadge(player.UserId, VictoryBadge)
-					end
+			if not OwnsVictoryBadge then
+				if PlayerData.Replica.Data.Wins < 1 then
+					BadgeService:AwardBadge(player.UserId, VictoryBadge)
 				end
-			end)
+			end
 
 			--Award players with coins and wins
 			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + WinsAwaredAmount)
@@ -508,15 +506,22 @@ function StartGame()
 			--Play victory dance on winners
 			local character = player.Character
 			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
+
+			humanoid.JumpPower = 50
+
 			local animator = humanoid:FindFirstChild("Animator") :: Animator
 			local AnimationTrack = animator:LoadAnimation(Animations:FindFirstChild(EquippedEmote))
 			AnimationTrack.Priority = Enum.AnimationPriority.Action
 			AnimationTrack.Looped = true
 			AnimationTrack:Play()
+
+			task.delay(Settings.CELEBRATE_TIME / 1.5, function()
+				AnimationTrack:Stop(1)
+			end)
 		end
 	end
 
-	--Let winners celebrate (if its tied itll just wait)
+	--Let winners celebrate (if it's tied it'll just wait)
 	for i = Settings.CELEBRATE_TIME, 0, -1 do
 		if i == math.ceil(Settings.CELEBRATE_TIME / 3) then
 			GameDataReplica:Set({ "Visible" }, false)
@@ -524,7 +529,7 @@ function StartGame()
 		task.wait(1)
 	end
 
-	-- cleanup players
+	-- cleanup participated players
 	for player: Player, playerData in GameData.Players do
 		task.defer(function()
 			if player:GetAttribute("OptionSelected") then
@@ -534,7 +539,7 @@ function StartGame()
 
 				local Character = player.Character
 				if Character then
-					local Humanoid = Character:FindFirstAncestorOfClass("Humanoid")
+					local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 					Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
 					Humanoid.Health = Humanoid.MaxHealth
 				end

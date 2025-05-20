@@ -263,7 +263,6 @@ function Service:PlayerJoin(Player: Player)
 
 	Connections.Character = Player.CharacterAdded:Connect(characterSpawn)
 
-	print(Profile)
 	self.PlayerJoinSignal:Fire(Player)
 end
 
@@ -278,9 +277,7 @@ Players.PlayerAdded:Connect(function(Player)
 		local _, OwnWelcomeBadge = Future.Try(function()
 			return BadgeService:UserHasBadgeAsync(Player.UserId, WelcomeBadgeId)
 		end):Await()
-		print(OwnWelcomeBadge, 1)
 		if not OwnWelcomeBadge then
-			print(2)
 			BadgeService:AwardBadge(Player.UserId, WelcomeBadgeId)
 		end
 	end)

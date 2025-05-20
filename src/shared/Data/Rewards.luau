@@ -83,9 +83,14 @@ return {
 	},
 
 	Follow = {
-		List = { 1795023834 },
+		List = {
+			3167055619, 
+			1795023834 
+		},
 
-		Callback = function(Player: Player, PlayerData) end,
+		Callback = function(Player: Player, PlayerData)
+			PlayerData.Replica:Set({"Coins"}, PlayerData.Replica.Data.Coins + 10000)
+		end,
 	},
 
 	Gifts = {
@@ -94,10 +99,6 @@ return {
 			Title = "+100 Coins",
 
 			Reward = function(Player: Player, PlayerData)
-				if not PlayerData then
-					return
-				end
-
 				PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 100)
 			end,
 
@@ -109,10 +110,6 @@ return {
 			Title = "+300 Coins",
 
 			Reward = function(Player: Player, PlayerData)
-				if not PlayerData then
-					return
-				end
-
 				PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 300)
 			end,
 
@@ -124,10 +121,6 @@ return {
 			Title = "+500 Coins",
 
 			Reward = function(Player: Player, PlayerData)
-				if not PlayerData then
-					return
-				end
-
 				PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + 500)
 			end,
 
@@ -198,27 +191,6 @@ return {
 				
 			end,
 			Title = "20 Spins",
-		},
-		[10] = {
-			Image = "rbxassetid://17613785372",
-			Function = function(Player: Player, PlayerData)
-				
-			end,
-			Title = "1000 Coins",
-		},
-		[11] = {
-			Image = "rbxassetid://17613785372",
-			Function = function(Player: Player, PlayerData)
-				
-			end,
-			Title = "10000 Coins",
-		},
-		[12] = {
-			Image = "rbxassetid://17610934034",
-			Function = function(Player: Player, PlayerData)
-				
-			end,
-			Title = "Big Surprise",
 		},
 	},
 }

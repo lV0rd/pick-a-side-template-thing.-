@@ -16,6 +16,7 @@ local Functions = Shared.Functions
 
 local Notify = require(Events.Notify):Server()
 
+local Future = require(ReplicatedStorage.Packages.Future)
 local Rewards = require(Shared.Data.Rewards)
 
 local Spin = require(Functions.Spin)
@@ -92,14 +93,14 @@ function Service.Start()
 	end)
 
 	Follow:SetCallback(function(Player: Player)
-		local success, result, result2 = pcall(function()
+		local Success, Result = Future.Try(function()
 			local PlayerData = PlayerService:GetPlayer(Player)
 			if not PlayerData then
-				return false, "Data not found"
+				return { false, "Data not found" }
 			end
 
 			if PlayerData.Replica.Data.Followed then
-				return false, "Already followed"
+				return { false, "Already followed" }
 			end
 
 			local Id = Player.UserId
@@ -125,17 +126,13 @@ function Service.Start()
 			if #FollowCount >= #Rewards.Follow.List then
 				Rewards.Follow.Callback(Player, PlayerData)
 				PlayerData.Replica:Set({ "Followed" }, true)
-				return true, "Followed"
+				return { true, "Followed" }
 			end
 
-			return false, FollowCount
-		end)
+			return { false, "Missing people", FollowCount }
+		end):Await()
 
-		if success then
-			return result, result2
-		else
-			return false, "Error with fetching follow data"
-		end
+		return Success, Result
 	end)
 
 	Gifts:SetCallback(function(Player: Player, Index: number)
@@ -191,7 +188,6 @@ function Service.Start()
 		local timeDifference = now - Data.LastDay
 
 		if timeDifference < HOURS_24 then
-			print("Suspiscious, tried to claim too soon.")
 			return false
 		end
 
