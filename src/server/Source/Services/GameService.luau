@@ -441,8 +441,13 @@ function StartGame()
 	for v: Player, playerData in GameData.Players do
 		v.Backpack:ClearAllChildren()
 
-		if v.Character and v.Character:FindFirstChildOfClass("Tool") then
-			local tool = v.Character:FindFirstChildOfClass("Tool")
+		local character = v.Character
+		if not character then
+			continue
+		end
+
+		if character:FindFirstChildOfClass("Tool") then
+			local tool = character:FindFirstChildOfClass("Tool")
 			tool:Destroy()
 		end
 	end
@@ -542,6 +547,11 @@ function StartGame()
 					local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 					Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
 					Humanoid.Health = Humanoid.MaxHealth
+				end
+
+				if Character:FindFirstChild("ColorIndicator", true) then
+					local gui = Character:FindFirstChild("ColorIndicator", true) :: BillboardGui?
+					gui:Destroy()
 				end
 			end
 		end)
