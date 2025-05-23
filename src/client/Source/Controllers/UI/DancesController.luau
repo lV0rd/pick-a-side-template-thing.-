@@ -41,6 +41,11 @@ local scope = Fusion.scoped(Fusion)
 local OnEvent = Fusion.OnEvent
 local Children = Fusion.Children
 
+local Assets = ReplicatedStorage:WaitForChild("Assets")
+local GuiAssets = Assets.Gui
+
+local RigTemplate = GuiAssets.ViewportRig
+
 local Cache = {}
 
 function Controller.Start()
@@ -97,6 +102,22 @@ function Controller.Start()
 		[Children] = {
 
 			scope:ForPairs(Dances, function(use, scope, ind, DanceData)
+				local NewCamera = Instance.new("Camera")
+				NewCamera.CFrame = CFrame.new(Vector3.new(0, 0, -5), Vector3.zero)
+
+				local DanceInstance = DanceData.Instance
+				local RigClone = RigTemplate:Clone()
+				local RigHumanoid = RigClone.Humanoid
+				local RigAnimator = RigHumanoid.Animator
+				
+				RigClone.Parent = workspace
+
+				local Track = RigAnimator:LoadAnimation(DanceInstance)
+				Track.Looped = true
+				Track.Priority = Enum.AnimationPriority.Action
+
+				Track:Play()
+
 				return scope:New("TextButton")({
 					Parent = DanceMenu.Elements,
 					Size = UDim2.fromScale(0.2, 0.15),
@@ -116,6 +137,20 @@ function Controller.Start()
 							Size = UDim2.fromScale(1, 1),
 							BackgroundTransparency = 1,
 							TextScaled = true,
+						}),
+
+						scope:New("ViewportFrame")({
+							CurrentCamera = NewCamera,
+							Size = UDim2.fromScale(1, 1),
+							BackgroundTransparency = 1,
+
+							[Children] = {
+								NewCamera,
+
+								scope:New("WorldModel")({
+									[Children] = RigClone,
+								}),
+							},
 						}),
 
 						scope:New("TextLabel")({
@@ -139,14 +174,17 @@ function Controller.Start()
 											Info = Cache[Index]
 										else
 											Cache[Index] = Future.new(function()
-												return MarketplaceService:GetProductInfo(DanceData.ID, Enum.InfoType.GamePass)
+												return MarketplaceService:GetProductInfo(
+													DanceData.ID,
+													Enum.InfoType.GamePass
+												)
 											end):Await()
 
 											Info = Cache[Index]
 										end
-									
+
 										if Info then
-											return "Buy " ..( Info.PriceInRobux or "0" ).. "\u{E002}"
+											return "Buy " .. (Info.PriceInRobux or "0") .. "\u{E002}"
 										else
 											return "Buy"
 										end
