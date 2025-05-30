@@ -471,57 +471,59 @@ function StartGame()
 
 		--Award winners
 		for i, player in winner:GetPlayers() do
-			local PlayerData = GameData.Players[player]
-			if not PlayerData then
-				continue
-			end
-
-			--Victory dance
-			local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
-
-			--If none, set to default
-			if EquippedEmote == "" then
-				EquippedEmote = "Default"
-			end
-
-			local CoinsAwardedAmount = 500 * PlayerData.LocalData.Data.CoinsMultiplier
-			local WinsAwaredAmount = 1 * PlayerData.LocalData.Data.WinsMultiplier
-
-			--Award first victory badge
-			local _, OwnsVictoryBadge = Future.Try(function()
-				return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
-			end):Await()
-
-			if not OwnsVictoryBadge then
-				if PlayerData.Replica.Data.Wins < 1 then
-					BadgeService:AwardBadge(player.UserId, VictoryBadge)
+			task.defer(function()
+				local PlayerData = GameData.Players[player]
+				if not PlayerData then
+					return
 				end
-			end
 
-			--Award players with coins and wins
-			PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + WinsAwaredAmount)
-			PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + CoinsAwardedAmount)
+				--Victory dance
+				local EquippedEmote = PlayerData.Replica.Data.EquippedEmote
 
-			player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
+				--If none, set to default
+				if EquippedEmote == "" then
+					EquippedEmote = "Default"
+				end
 
-			--Notify player rewards
-			Notify:Fire(player, `<font color="#00FF00">+{CoinsAwardedAmount} Coins!</font>`)
-			Notify:Fire(player, `<font color="#00FF00">+{WinsAwaredAmount} Wins!</font>`)
+				local CoinsAwardedAmount = 500 * PlayerData.LocalData.Data.CoinsMultiplier
+				local WinsAwaredAmount = 1 * PlayerData.LocalData.Data.WinsMultiplier
 
-			--Play victory dance on winners
-			local character = player.Character
-			local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
+				--Award first victory badge
+				local _, OwnsVictoryBadge = Future.Try(function()
+					return BadgeService:UserHasBadgeAsync(player.UserId, VictoryBadge)
+				end):Await()
 
-			humanoid.JumpPower = 50
+				if not OwnsVictoryBadge then
+					if PlayerData.Replica.Data.Wins < 1 then
+						BadgeService:AwardBadge(player.UserId, VictoryBadge)
+					end
+				end
 
-			local animator = humanoid:FindFirstChild("Animator") :: Animator
-			local AnimationTrack = animator:LoadAnimation(Animations:FindFirstChild(EquippedEmote))
-			AnimationTrack.Priority = Enum.AnimationPriority.Action
-			AnimationTrack.Looped = true
-			AnimationTrack:Play()
+				--Award players with coins and wins
+				PlayerData.Replica:Set({ "Wins" }, PlayerData.Replica.Data.Wins + WinsAwaredAmount)
+				PlayerData.Replica:Set({ "Coins" }, PlayerData.Replica.Data.Coins + CoinsAwardedAmount)
 
-			task.delay(Settings.CELEBRATE_TIME / 1.5, function()
-				AnimationTrack:Stop(1)
+				player.leaderstats.Wins.Value = PlayerData.Replica.Data.Wins
+
+				--Notify player rewards
+				Notify:Fire(player, `<font color="#00FF00">+{CoinsAwardedAmount} Coins!</font>`)
+				Notify:Fire(player, `<font color="#00FF00">+{WinsAwaredAmount} Wins!</font>`)
+
+				--Play victory dance on winners
+				local character = player.Character
+				local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
+
+				humanoid.JumpPower = 50
+
+				local animator = humanoid:FindFirstChild("Animator") :: Animator
+				local AnimationTrack = animator:LoadAnimation(Animations:FindFirstChild(EquippedEmote))
+				AnimationTrack.Priority = Enum.AnimationPriority.Action
+				AnimationTrack.Looped = true
+				AnimationTrack:Play()
+
+				task.delay(Settings.CELEBRATE_TIME / 1.5, function()
+					AnimationTrack:Stop(1)
+				end)
 			end)
 		end
 	end
@@ -534,27 +536,26 @@ function StartGame()
 		task.wait(1)
 	end
 
-	-- cleanup participated players
+	-- cleanup players
 	for player: Player, playerData in GameData.Players do
-		task.defer(function()
-			if player:GetAttribute("OptionSelected") then
-				player:SetAttribute("OptionSelected", nil)
-				player.Team = Teams.Lobby
-				player.TeamColor = BrickColor.White()
+		if player:GetAttribute("OptionSelected") then
+			player:SetAttribute("OptionSelected", nil)
+		end
 
-				local Character = player.Character
-				if Character then
-					local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-					Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
-					Humanoid.Health = Humanoid.MaxHealth
-				end
+		player.Team = Teams.Lobby
+		player.TeamColor = BrickColor.White()
 
-				if Character:FindFirstChild("ColorIndicator", true) then
-					local gui = Character:FindFirstChild("ColorIndicator", true) :: BillboardGui?
-					gui:Destroy()
-				end
-			end
-		end)
+		local Character = player.Character
+		if Character then
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+			Character:PivotTo(workspace.SpawnLocation.Spawn.CFrame)
+			Humanoid.Health = Humanoid.MaxHealth
+		end
+
+		if Character:FindFirstChild("ColorIndicator", true) then
+			local gui = Character:FindFirstChild("ColorIndicator", true) :: BillboardGui?
+			gui:Destroy()
+		end
 	end
 
 	--Make previews invisible

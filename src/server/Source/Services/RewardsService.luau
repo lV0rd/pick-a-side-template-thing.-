@@ -61,6 +61,10 @@ function getCurrentDay(Data)
 		CurrentDay = 1
 	end
 
+	if CurrentDay + 1 > #Rewards.Daily then
+		CurrentDay = 1
+	end
+
 	return CurrentDay
 end
 
