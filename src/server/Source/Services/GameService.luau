@@ -88,13 +88,26 @@ local Service = {
 }
 
 --Self explanatory, used during voting
-local function getTriangularGridOffset(index: number): Vector3
-	local row = math.floor((math.sqrt(8 * index + 1) - 1) / 2)
-	local posInRow = index - row * (row + 1) // 2
-	local xSpacing, zSpacing = 3, 2.5
-	local x = (posInRow - row / 2) * xSpacing
-	local z = row * zSpacing
-	return Vector3.new(x, 0, z) - Vector3.new(2, 0, 0)
+local function getRectangularGridOffset(
+	index: number,
+	columns: number,
+	rows: number,
+	xSpacing: number,
+	zSpacing: number
+): Vector3
+	local row = math.floor(index / columns)
+	local col = index % columns
+
+	local gridWidth = (columns - 1) * xSpacing
+	local gridDepth = (rows - 1) * zSpacing
+
+	local centerX = gridWidth / 2
+	local centerZ = gridDepth / 2
+
+	local x = col * xSpacing - centerX
+	local z = row * zSpacing - centerZ
+
+	return Vector3.new(x, 0, z)
 end
 
 --Return the amount of players loaded
@@ -244,6 +257,11 @@ function StartGame()
 	--These are needed for the triangular grid positioning
 	local votes = { blue = {}, red = {} }
 
+	local columns = 5 -- number of columns in the grid
+	local rows = 4 -- number of rows in the grid
+	local xSpacing = 5 -- horizontal spacing between parts (studs)
+	local zSpacing = 4.5 -- vertical spacing between parts (studs)
+
 	--Check every frame wether a player has stepped on the voting pads or no
 	--When a player has stepped on one, triangule grid will position them, and then disable their movement
 	voting_conn = RunService.PostSimulation:Connect(function()
@@ -270,32 +288,40 @@ function StartGame()
 				player:SetAttribute("OptionSelected", hit.Instance.Parent.Name)
 
 				if hit.Instance.Parent.Name == "Blue" then
+					local index = #votes.blue
 					table.insert(votes.blue, player)
-					local index = #votes.blue - 1
-					local offset = getTriangularGridOffset(index)
+					local zeroBasedIndex = index -- since Lua arrays start at 1, but your offset is 0-based
 
-					local basePosition = hit.Instance.Position
-					local newPos = basePosition + offset
+					local offset = getRectangularGridOffset(zeroBasedIndex, columns, rows, xSpacing, zSpacing)
+
+					local baseCFrame = hit.Instance.CFrame
+					local newCFrame = baseCFrame * CFrame.new(offset.X, 0, offset.Z)
 
 					local rootPart = character:FindFirstChild("HumanoidRootPart")
 					if rootPart then
 						humanoid.WalkSpeed = 0
 						humanoid.JumpPower = 0
-						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
+						-- Preserve Y from character pivot, but X/Z from offset relative to hit.Instance
+						local posY = character:GetPivot().Position.Y
+						rootPart.CFrame = CFrame.new(newCFrame.Position.X, posY, newCFrame.Position.Z)
 					end
 				else
+					local index = #votes.red
 					table.insert(votes.red, player)
-					local index = #votes.red - 1
-					local offset = getTriangularGridOffset(index)
+					local zeroBasedIndex = index -- since Lua arrays start at 1, but your offset is 0-based
 
-					local basePosition = hit.Instance.Position
-					local newPos = basePosition + offset
+					local offset = getRectangularGridOffset(zeroBasedIndex, columns, rows, xSpacing, zSpacing)
+
+					local baseCFrame = hit.Instance.CFrame
+					local newCFrame = baseCFrame * CFrame.new(offset.X, 0, offset.Z)
 
 					local rootPart = character:FindFirstChild("HumanoidRootPart")
 					if rootPart then
 						humanoid.WalkSpeed = 0
 						humanoid.JumpPower = 0
-						rootPart.CFrame = CFrame.new(newPos.X, character:GetPivot().Position.Y, newPos.Z)
+						-- Preserve Y from character pivot, but X/Z from offset relative to hit.Instance
+						local posY = character:GetPivot().Position.Y
+						rootPart.CFrame = CFrame.new(newCFrame.Position.X, posY, newCFrame.Position.Z)
 					end
 				end
 			end
@@ -446,6 +472,11 @@ function StartGame()
 			continue
 		end
 
+		local Humanoid = character:FindFirstChild("Humanoid") :: Humanoid
+		if Humanoid then
+			Humanoid.JumpPower = 50
+		end
+
 		if character:FindFirstChildOfClass("Tool") then
 			local tool = character:FindFirstChildOfClass("Tool")
 			tool:Destroy()
@@ -457,7 +488,7 @@ function StartGame()
 	local winner
 
 	if #BlueTeam:GetPlayers() ~= #RedTeam:GetPlayers() then
-		winner = if #BlueTeam:GetPlayers() == 0 then RedTeam else BlueTeam
+		winner = if #BlueTeam:GetPlayers() < #RedTeam:GetPlayers() then RedTeam else BlueTeam
 	end
 
 	--Tell the client who won
@@ -512,8 +543,6 @@ function StartGame()
 				--Play victory dance on winners
 				local character = player.Character
 				local humanoid = character:FindFirstChild("Humanoid") :: Humanoid
-
-				humanoid.JumpPower = 50
 
 				local animator = humanoid:FindFirstChild("Animator") :: Animator
 				local AnimationTrack = animator:LoadAnimation(Animations:FindFirstChild(EquippedEmote))

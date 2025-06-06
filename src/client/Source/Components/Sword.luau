@@ -10,33 +10,35 @@ local Attack = require(Events.Attack):Client()
 
 local LocalPlayer = Players.LocalPlayer
 
-local module = {Tag = script.Name}
+local module = { Tag = script.Name }
 module.__index = module
 
-function module.new(Instance : Tool)
+function module.new(Instance: Tool)
 	local self = setmetatable({
 		Instance = Instance :: Tool,
 		debounce = false :: boolean,
 		Janitor = Janitor.new(),
 	}, module)
-	
+
 	self:init()
-	
+
 	return self
 end
 
 function module:init()
 	self.Janitor:Add(self.Instance.Activated:Connect(function()
-
 		if self.debounce then
 			return
 		end
+		print("in debounce")
 
 		self.debounce = true
 
 		task.delay(0.7, function()
 			self.debounce = nil
+			print("Tool debounce cleared")
 		end)
+		print("Tool debounce set")
 
 		local Character = LocalPlayer.Character
 		local Humanoid = Character.Humanoid :: Humanoid
@@ -44,65 +46,69 @@ function module:init()
 		local Animation = Animator:LoadAnimation(ReplicatedStorage.Assets.Animations.Swing)
 		Animation:Play()
 
-		local RootPart = Humanoid.RootPart
-
 		if self.Instance.Parent ~= Character then
 			return
 		end
 
-		local Hitbox = Instance.new("Part")
-		Hitbox.Size = Vector3.new(5, 5, 6)
-		Hitbox.Transparency = .5
-		Hitbox.CanCollide = false
-		Hitbox.Anchored = true
-		Hitbox.CFrame = CFrame.new(RootPart.Position + RootPart.CFrame.LookVector * Hitbox.Size.Z)
-			* CFrame.Angles(0, RootPart.Orientation.Y * math.pi / 180, 0)
-		Hitbox.Parent = workspace
-
-		local Debounce = false
-
-		local Touched
-
-		task.delay(0.2, function()
-			if Touched then
-				Touched:Disconnect()
-				Touched = nil
+		self.Janitor:Add(self.Instance.Activated:Connect(function()
+			if self.debounce then
+				return
 			end
-			Hitbox:Destroy()
-		end)
+			self.debounce = true
+			print("Tool debounce set")
 
-		Touched = Hitbox.Touched:Connect(function(Hit)
-			if Debounce then
+			task.delay(0.7, function()
+				self.debounce = nil
+				print("Tool debounce cleared")
+			end)
+
+			local Character = LocalPlayer.Character
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+			if not Humanoid then
 				return
 			end
 
-			local OtherCharacter = Hit.Parent
-			local OtherHumanoid = OtherCharacter:FindFirstChild("Humanoid") :: Humanoid?
-			if not OtherHumanoid then
+			local Animator = Humanoid:FindFirstChildOfClass("Animator")
+			local Animation = Animator and Animator:LoadAnimation(ReplicatedStorage.Assets.Animations.Swing)
+			if Animation then
+				Animation:Play()
+			end
+
+			if self.Instance.Parent ~= Character then
 				return
 			end
 
-			local HitPlayer = Players:GetPlayerFromCharacter(OtherCharacter)
+			local RootPart = Humanoid.RootPart
+			local Hitbox = Instance.new("Part")
+			Hitbox.Size = Vector3.new(5, 5, 6)
+			Hitbox.Transparency = 1
+			Hitbox.CanCollide = false
+			Hitbox.Anchored = true
+			Hitbox.CFrame = CFrame.new(RootPart.Position + RootPart.CFrame.LookVector * (Hitbox.Size.Z / 2))
+				* CFrame.Angles(0, RootPart.Orientation.Y * math.pi / 180, 0)
+			Hitbox.Parent = workspace
 
-			if not HitPlayer then
-				return
-			end
+			task.spawn(function()
+				local parts = workspace:GetPartBoundsInBox(Hitbox.CFrame, Hitbox.Size, nil)
 
-			if HitPlayer == LocalPlayer then
-				return
-			end
+				for _, part in ipairs(parts) do
+					local char = part:FindFirstAncestorOfClass("Model")
+					local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-			if HitPlayer.Team == LocalPlayer.Team then
-				return
-			end
+					if hum and char ~= Character then
+						local hitPlayer = Players:GetPlayerFromCharacter(char)
+						if hitPlayer and hitPlayer.Team ~= LocalPlayer.Team then
+							Attack:Fire(hum)
+							print("Hit registered on:", hitPlayer.Name)
+							break
+						end
+					end
+				end
 
-			Debounce = true
-			Attack:Fire(HitPlayer)
-			Hitbox:Destroy()
-		end)
-
-
-	end), "Disconnect")
+				Hitbox:Destroy()
+			end)
+		end))
+	end))
 end
 
 function module:_cleanup()

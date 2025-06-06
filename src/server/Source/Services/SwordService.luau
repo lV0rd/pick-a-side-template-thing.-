@@ -3,6 +3,7 @@ SwordService.luau 2025/05/13
 
 Handling weapons, and tagging
 ]]
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Service = {
 	Name = script.Name,
@@ -25,12 +26,14 @@ function Tag(Tagged, Tagger: Player)
 	end
 
 	local TagInstance = Instance.new("ObjectValue")
+	TagInstance.Name = "KillerTag"
 	TagInstance.Value = Tagger
 	TagInstance.Parent = Tagged
 end
 
 function Service.Start()
-	Attack:On(function(Player: Player, HitPlayer: Player)
+	Attack:On(function(Player: Player, HitHumanoid: Humanoid)
+		print("Fired")
 		local UserId = Player.UserId
 		local Character = Player.Character
 		local Humanoid = Character:FindFirstChild("Humanoid") :: Humanoid?
@@ -38,6 +41,7 @@ function Service.Start()
 		if Debounces[UserId] then
 			return
 		end
+		print("Not in debounce")
 
 		Debounces[UserId] = true
 
@@ -49,48 +53,65 @@ function Service.Start()
 		if not Tool then
 			return
 		end
+		print("Found tool")
 
 		local ToolData = Swords[Tool.Name]
+		if not ToolData then
+			return
+		end
+		print("Found tool data")
 
 		if Humanoid.Health <= 0 then
 			return
 		end
+		print("Attacker alive")
 
-		local OtherCharacter = HitPlayer.Character
-		local OtherHumanoid = OtherCharacter:FindFirstChild("Humanoid") :: Humanoid?
+		local HitCharacter = HitHumanoid.Parent
+		local HitPlayer = Players:GetPlayerFromCharacter(HitCharacter)
 
-		if not OtherHumanoid then
+		if not HitCharacter then
 			return
 		end
-
+		print("Target character found")
+		
 		if not HitPlayer then
 			return
 		end
+		print("Target player found")
 
 		if HitPlayer == Player then
 			return
 		end
+		print("Target isnt attacker")
 
 		if HitPlayer.Team == Player.Team then
 			return
 		end
+		print("Not same team")
 
-		local Distance = (Humanoid.RootPart.Position - OtherHumanoid.RootPart.Position)
-		if Distance.Magnitude > 10 then
+		if not (Humanoid.RootPart and HitHumanoid.RootPart) then
 			return
 		end
 
-		Tag(OtherCharacter, Player)
+		local Distance = (Humanoid.RootPart.Position - HitHumanoid.RootPart.Position)
+		if Distance.Magnitude > 10 then
+			return
+		end
+		print("Within distance")
 
-		OtherHumanoid:TakeDamage(ToolData.Damage)
+		Tag(HitCharacter, Player)
+		print("Tagged")
 
-		if OtherHumanoid.RootPart and Humanoid.RootPart then
+		HitHumanoid:TakeDamage(ToolData.Damage)
+		print("Damaged")
+
+		if HitHumanoid.RootPart and Humanoid.RootPart then
 			local direction = Distance.Unit
 			local knockbackVelocity = (direction * 50) + Vector3.new(0, 60, 0) -- adjust power as needed
-			OtherHumanoid.RootPart.AssemblyLinearVelocity = knockbackVelocity
+			HitHumanoid.RootPart.AssemblyLinearVelocity = knockbackVelocity
 		end
 
-		Ragdoll.TimedRagdoll(OtherCharacter, 0.2)
+		Ragdoll.TimedRagdoll(HitCharacter, 0.2)
 	end)
 end
 
