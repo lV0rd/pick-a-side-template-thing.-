@@ -30,86 +30,60 @@ function module:init()
 		if self.debounce then
 			return
 		end
-		print("in debounce")
-
 		self.debounce = true
+		print("Tool debounce set")
 
 		task.delay(0.7, function()
 			self.debounce = nil
 			print("Tool debounce cleared")
 		end)
-		print("Tool debounce set")
 
 		local Character = LocalPlayer.Character
-		local Humanoid = Character.Humanoid :: Humanoid
-		local Animator = Humanoid:FindFirstChildOfClass("Animator") :: Animator?
-		local Animation = Animator:LoadAnimation(ReplicatedStorage.Assets.Animations.Swing)
-		Animation:Play()
+		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+		if not Humanoid then return end
+
+		local Animator = Humanoid:FindFirstChildOfClass("Animator")
+		local Animation = Animator and Animator:LoadAnimation(ReplicatedStorage.Assets.Animations.Swing)
+		if Animation then
+			Animation:Play()
+		end
 
 		if self.Instance.Parent ~= Character then
 			return
 		end
 
-		self.Janitor:Add(self.Instance.Activated:Connect(function()
-			if self.debounce then
-				return
-			end
-			self.debounce = true
-			print("Tool debounce set")
+		local RootPart = Humanoid.RootPart
+		local Hitbox = Instance.new("Part")
+		Hitbox.Size = Vector3.new(5, 5, 6)
+		Hitbox.Transparency = 1
+		Hitbox.CanCollide = false
+		Hitbox.Anchored = true
+		Hitbox.CFrame = CFrame.new(RootPart.Position + RootPart.CFrame.LookVector * (Hitbox.Size.Z / 2))
+			* CFrame.Angles(0, RootPart.Orientation.Y * math.pi / 180, 0)
+		Hitbox.Parent = workspace
 
-			task.delay(0.7, function()
-				self.debounce = nil
-				print("Tool debounce cleared")
-			end)
+		task.spawn(function()
+			local parts = workspace:GetPartBoundsInBox(Hitbox.CFrame, Hitbox.Size, nil)
 
-			local Character = LocalPlayer.Character
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			if not Humanoid then
-				return
-			end
+			for _, part in ipairs(parts) do
+				local char = part:FindFirstAncestorOfClass("Model")
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-			local Animator = Humanoid:FindFirstChildOfClass("Animator")
-			local Animation = Animator and Animator:LoadAnimation(ReplicatedStorage.Assets.Animations.Swing)
-			if Animation then
-				Animation:Play()
-			end
-
-			if self.Instance.Parent ~= Character then
-				return
-			end
-
-			local RootPart = Humanoid.RootPart
-			local Hitbox = Instance.new("Part")
-			Hitbox.Size = Vector3.new(5, 5, 6)
-			Hitbox.Transparency = 1
-			Hitbox.CanCollide = false
-			Hitbox.Anchored = true
-			Hitbox.CFrame = CFrame.new(RootPart.Position + RootPart.CFrame.LookVector * (Hitbox.Size.Z / 2))
-				* CFrame.Angles(0, RootPart.Orientation.Y * math.pi / 180, 0)
-			Hitbox.Parent = workspace
-
-			task.spawn(function()
-				local parts = workspace:GetPartBoundsInBox(Hitbox.CFrame, Hitbox.Size, nil)
-
-				for _, part in ipairs(parts) do
-					local char = part:FindFirstAncestorOfClass("Model")
-					local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-					if hum and char ~= Character then
-						local hitPlayer = Players:GetPlayerFromCharacter(char)
-						if hitPlayer and hitPlayer.Team ~= LocalPlayer.Team then
-							Attack:Fire(hum)
-							print("Hit registered on:", hitPlayer.Name)
-							break
-						end
+				if hum and char ~= Character then
+					local hitPlayer = Players:GetPlayerFromCharacter(char)
+					if hitPlayer and hitPlayer.Team ~= LocalPlayer.Team then
+						Attack:Fire(hum)
+						print("Hit registered on:", hitPlayer.Name)
+						break
 					end
 				end
+			end
 
-				Hitbox:Destroy()
-			end)
-		end))
+			Hitbox:Destroy()
+		end)
 	end))
 end
+
 
 function module:_cleanup()
 	self.Janitor:Cleanup()
