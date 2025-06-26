@@ -67,6 +67,12 @@ function Controller.Start()
 		Coins:set(PlayerData.Data.Coins)
 	end)
 
+	--infinite loop errors happen because Replica :OnChange will update every second, because of Playtime counter on the server
+	--and Fusion thinks that setting values like that every second is an infinite loop that causes cyclic dependency
+	--which is not
+	--so just ignore this, or you can modify Fusion's error thrower to ignore it aswell
+	-- Also replica doesnt have an ignore feature which is sad :(
+
 	PlayerData:OnChange(function(type, path, index: number, id: string)
 		if path[1] == "Emotes" then
 			if type == "Set" then
